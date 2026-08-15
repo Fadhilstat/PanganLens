@@ -2,7 +2,9 @@
 WITH checks AS (
   SELECT
     'raw_payload_hash_valid' AS check_name,
-    COUNTIF(LOWER(TO_HEX(SHA256(payload_text))) != LOWER(payload_sha256)) AS failure_count
+    COUNTIF(
+      LOWER(TO_HEX(SHA256(payload_text))) != LOWER(payload_sha256)
+    ) AS failure_count
   FROM panganlens_raw.raw_food_price_capture
   WHERE run_id = @run_id
 
@@ -49,6 +51,22 @@ WITH checks AS (
   SELECT
     'staging_invalid_rows_zero',
     COUNTIF(validation_status != 'VALID')
+  FROM panganlens_staging.normalized_price_candidate
+  WHERE run_id = @run_id
+
+  UNION ALL
+
+  SELECT
+    'staging_mapping_evidence_present',
+    COUNTIF(
+      mapping_status = 'MAPPED'
+      AND (
+        mapping_version IS NULL
+        OR mapping_version <= 0
+        OR mapping_key_fingerprint IS NULL
+        OR LENGTH(mapping_key_fingerprint) != 64
+      )
+    )
   FROM panganlens_staging.normalized_price_candidate
   WHERE run_id = @run_id
 
