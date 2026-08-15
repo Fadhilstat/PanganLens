@@ -9,13 +9,16 @@ from panganlens.ingestion.pihps_interface import (
     GridRequest,
     PihpsInterfaceError,
     PihpsWebsiteClient,
+    SourceRows,
     pick_reference_id,
-    response_shape,
+    validate_schema_contract,
 )
-
 
 PROVINCE_ID_KEYS = ("province_id", "id", "value")
 COMMODITY_ID_KEYS = ("comcat_id", "id", "value")
+EXPECTED_PROVINCE_KEYS = frozenset({"id", "name"})
+EXPECTED_COMMODITY_KEYS = frozenset({"cat_id", "denomination", "id", "name", "sort"})
+EXPECTED_GRID_KEYS = frozenset({"<date>", "level", "name", "no"})
 
 
 def previous_business_day(reference_date: date) -> date:
@@ -30,19 +33,18 @@ def previous_business_day(reference_date: date) -> date:
 def build_probe_summary(client: PihpsWebsiteClient, reference_date: date) -> dict[str, object]:
     """Probe references and one grid request without logging source row values."""
 
-    provinces = client.fetch_reference("provinces")
-    commodities = client.fetch_reference("commodities")
-
+    province_capture = client.fetch_reference_capture("provinces")
+    commodity_capture = client.fetch_reference_capture("commodities")
+    provinces = list(province_capture.rows)
+    commodities = list(commodity_capture.rows)
     if not provinces:
         raise PihpsInterfaceError("province reference response is empty")
     if not commodities:
         raise PihpsInterfaceError("commodity reference response is empty")
 
-    province_id = pick_reference_id(
-        provinces,
-        PROVINCE_ID_KEYS,
-        preferred="13",
-    )
+    province_shape = validate_schema_contract(provinces, EXPECTED_PROVINCE_KEYS)
+    commodity_shape = validate_schema_contract(commodities, EXPECTED_COMMODITY_KEYS)
+    province_id = pick_reference_id(provinces, PROVINCE_ID_KEYS, preferred="13")
     commodity_id = pick_reference_id(
         commodities,
         COMMODITY_ID_KEYS,
@@ -51,7 +53,7 @@ def build_probe_summary(client: PihpsWebsiteClient, reference_date: date) -> dic
 
     end_date = previous_business_day(reference_date)
     start_date = end_date - timedelta(days=10)
-    grid_request = GridRequest(
+    request = GridRequest(
         price_type_id=1,
         comcat_id=commodity_id,
         province_id=province_id,
@@ -61,10 +63,11 @@ def build_probe_summary(client: PihpsWebsiteClient, reference_date: date) -> dic
         show_markets=False,
         report_type=1,
     )
-    grid_rows = client.fetch_grid(grid_request)
-
+    grid_capture = client.fetch_grid_capture(request)
+    grid_rows = list(grid_capture.rows)
     if not grid_rows:
         raise PihpsInterfaceError("grid response is empty for the probe window")
+    grid_shape = validate_schema_contract(grid_rows, EXPECTED_GRID_KEYS)
 
     return {
         "status": "pass",
@@ -79,8 +82,21 @@ def build_probe_summary(client: PihpsWebsiteClient, reference_date: date) -> dic
             "commodity_id": commodity_id,
         },
         "response_shapes": {
-            "provinces": asdict(response_shape(provinces)),
-            "commodities": asdict(response_shape(commodities)),
-            "grid": asdict(response_shape(grid_rows)),
+            "provinces": asdict(province_shape),
+            "commodities": asdict(commodity_shape),
+            "grid": asdict(grid_shape),
+        },
+        "source_evidence": {
+            "provinces": _safe_evidence(province_capture),
+            "commodities": _safe_evidence(commodity_capture),
+            "grid": _safe_evidence(grid_capture),
         },
     }
+
+
+def _safe_evidence(capture: SourceRows) -> dict[str, object]:
+    """Expose integrity metadata without including source row values."""
+
+    evidence = asdict(capture.evidence)
+    evidence.pop("source_url", None)
+    return evidence
