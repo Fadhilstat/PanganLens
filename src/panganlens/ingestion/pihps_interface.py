@@ -1,34 +1,41 @@
-"""Client for the PIHPS public website data interface.
+"""Guarded client for the PIHPS public website data interface.
 
-The endpoints used here are part of the public PIHPS website implementation, but
-Bank Indonesia does not document them as a stable public API. The client keeps
-that distinction explicit and validates every response before downstream use.
+Bank Indonesia does not document these website endpoints as a stable public API.
+The client therefore validates transport, payload size, content type, and schema
+before any response can move into normalization.
 """
 
 from __future__ import annotations
 
+import hashlib
+import json
+import re
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
-from typing import Any, Mapping, Sequence
+from typing import Any
+from urllib.parse import urlparse
 
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-
 
 REFERENCE_ENDPOINTS = {
     "provinces": "/WebSite/TabelHarga/GetRefProvince",
     "commodities": "/WebSite/TabelHarga/GetRefCommodityAndCategory",
     "regencies": "/WebSite/TabelHarga/GetRefRegency",
 }
-
 GRID_ENDPOINT = "/WebSite/TabelHarga/GetGridDataKomoditas"
 ROW_CONTAINER_KEYS = ("data", "rows", "result", "items")
 RETRY_STATUS_CODES = (429, 500, 502, 503, 504)
+DEFAULT_ALLOWED_HOSTS = frozenset({"www.bi.go.id"})
+DEFAULT_MAX_PAYLOAD_BYTES = 2_000_000
+JSON_CONTENT_TYPES = ("application/json", "text/json")
+DATE_COLUMN_PATTERN = re.compile(r"^\d{2}/\d{2}/\d{4}$")
 
 
 class PihpsInterfaceError(RuntimeError):
-    """Raised when the PIHPS website interface returns an unusable response."""
+    """Raised when the PIHPS website interface returns an unsafe response."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -79,6 +86,30 @@ class ResponseShape:
 
     row_count: int
     row_keys: tuple[str, ...]
+    normalized_keys: tuple[str, ...]
+    schema_fingerprint: str
+
+
+@dataclass(frozen=True, slots=True)
+class SourceEvidence:
+    """Integrity metadata retained beside a source response."""
+
+    source_url: str
+    source_host: str
+    content_type: str
+    payload_bytes: int
+    payload_sha256: str
+    request_fingerprint: str
+    schema_fingerprint: str
+
+
+@dataclass(frozen=True, slots=True)
+class SourceRows:
+    """Validated source rows paired with transport and integrity evidence."""
+
+    rows: tuple[dict[str, Any], ...]
+    payload_text: str
+    evidence: SourceEvidence
 
 
 class PihpsWebsiteClient:
@@ -89,72 +120,116 @@ class PihpsWebsiteClient:
         base_url: str = "https://www.bi.go.id/hargapangan",
         timeout_seconds: int = 30,
         session: requests.Session | None = None,
+        allowed_hosts: frozenset[str] = DEFAULT_ALLOWED_HOSTS,
+        max_payload_bytes: int = DEFAULT_MAX_PAYLOAD_BYTES,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.timeout_seconds = timeout_seconds
         self.session = session or _build_session()
+        self.allowed_hosts = allowed_hosts
+        self.max_payload_bytes = max_payload_bytes
+        _validate_source_url(self.base_url, self.allowed_hosts)
+        if self.max_payload_bytes <= 0:
+            raise ValueError("max_payload_bytes must be positive")
 
     def fetch_reference(
         self,
         name: str,
         params: Mapping[str, str | int] | None = None,
     ) -> list[dict[str, Any]]:
-        """Fetch a PIHPS reference list and require a row-oriented JSON response."""
+        """Fetch a reference list and return validated rows."""
+
+        return list(self.fetch_reference_capture(name, params).rows)
+
+    def fetch_reference_capture(
+        self,
+        name: str,
+        params: Mapping[str, str | int] | None = None,
+    ) -> SourceRows:
+        """Fetch a reference list with source integrity evidence."""
 
         try:
             path = REFERENCE_ENDPOINTS[name]
         except KeyError as exc:
             raise KeyError(f"unknown reference endpoint: {name}") from exc
-
-        return self._get_rows(
-            path=path,
-            params=params,
-            referer="/TabelHarga/PasarTradisionalKomoditas",
-        )
+        return self._get_capture(path, params, "/TabelHarga/PasarTradisionalKomoditas")
 
     def fetch_grid(self, request: GridRequest) -> list[dict[str, Any]]:
-        """Fetch one commodity grid without interpreting its row values yet."""
+        """Fetch one commodity grid without interpreting row values."""
 
-        return self._get_rows(
-            path=GRID_ENDPOINT,
-            params=request.as_params(),
-            referer="/TabelHarga/PasarTradisionalKomoditas",
+        return list(self.fetch_grid_capture(request).rows)
+
+    def fetch_grid_capture(self, request: GridRequest) -> SourceRows:
+        """Fetch one commodity grid with source integrity evidence."""
+
+        return self._get_capture(
+            GRID_ENDPOINT,
+            request.as_params(),
+            "/TabelHarga/PasarTradisionalKomoditas",
         )
 
-    def _get_rows(
+    def _get_capture(
         self,
         path: str,
         params: Mapping[str, str | int] | None,
         referer: str,
-    ) -> list[dict[str, Any]]:
+    ) -> SourceRows:
         url = f"{self.base_url}{path}"
+        _validate_source_url(url, self.allowed_hosts)
+        request_params = dict(params) if params else {}
         headers = {
             "Accept": "application/json, text/javascript, */*; q=0.01",
             "Referer": f"{self.base_url}{referer}",
             "User-Agent": "PanganLens/0.1 (+https://github.com/Fadhilstat/PanganLens)",
             "X-Requested-With": "XMLHttpRequest",
         }
-
         try:
             response = self.session.get(
                 url,
-                params=dict(params) if params else None,
+                params=request_params or None,
                 headers=headers,
                 timeout=self.timeout_seconds,
+                allow_redirects=False,
+                stream=True,
             )
+            if 300 <= response.status_code < 400:
+                raise PihpsInterfaceError("PIHPS response attempted an unexpected redirect")
             response.raise_for_status()
+        except PihpsInterfaceError:
+            raise
         except requests.RequestException as exc:
             raise PihpsInterfaceError(f"PIHPS request failed for {path}: {exc}") from exc
 
-        try:
-            payload = response.json()
-        except (ValueError, TypeError) as exc:
-            content_type = response.headers.get("content-type", "unknown")
+        content_type = response.headers.get("content-type", "").lower()
+        if not any(content_type.startswith(item) for item in JSON_CONTENT_TYPES):
+            shown_type = content_type or "missing"
             raise PihpsInterfaceError(
-                f"PIHPS returned non-JSON content for {path}; content-type={content_type}"
-            ) from exc
+                f"PIHPS returned unexpected content-type for {path}: {shown_type}"
+            )
 
-        return extract_rows(payload)
+        declared_length = _parse_content_length(response.headers.get("content-length"))
+        if declared_length is not None and declared_length > self.max_payload_bytes:
+            raise PihpsInterfaceError("PIHPS payload exceeds the configured size limit")
+
+        payload_bytes = _read_limited_body(response, self.max_payload_bytes)
+        try:
+            payload_text = payload_bytes.decode("utf-8")
+            payload = json.loads(payload_text)
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise PihpsInterfaceError("PIHPS returned invalid UTF-8 JSON") from exc
+
+        rows = extract_rows(payload)
+        shape = response_shape(rows)
+        evidence = SourceEvidence(
+            source_url=url,
+            source_host=urlparse(url).hostname or "",
+            content_type=content_type,
+            payload_bytes=len(payload_bytes),
+            payload_sha256=hashlib.sha256(payload_bytes).hexdigest(),
+            request_fingerprint=_request_fingerprint(path, request_params),
+            schema_fingerprint=shape.schema_fingerprint,
+        )
+        return SourceRows(tuple(rows), payload_text, evidence)
 
 
 def extract_rows(payload: Any) -> list[dict[str, Any]]:
@@ -164,32 +239,51 @@ def extract_rows(payload: Any) -> list[dict[str, Any]]:
     if isinstance(payload, list):
         rows = payload
     elif isinstance(payload, dict):
-        rows = None
-        for key in ROW_CONTAINER_KEYS:
-            value = payload.get(key)
-            if value is not None:
-                rows = value
-                break
+        rows = next((payload.get(key) for key in ROW_CONTAINER_KEYS if key in payload), None)
         if rows is None:
             raise PihpsInterfaceError(
                 "PIHPS JSON response did not contain a recognized row container"
             )
     else:
         raise PihpsInterfaceError("PIHPS JSON response is not a row-oriented structure")
-
     if not isinstance(rows, list):
         raise PihpsInterfaceError("PIHPS row container is not a list")
     if any(not isinstance(row, dict) for row in rows):
         raise PihpsInterfaceError("PIHPS row container includes a non-object item")
-
     return [dict(row) for row in rows]
 
 
 def response_shape(rows: Sequence[Mapping[str, Any]]) -> ResponseShape:
-    """Return row count and the union of row keys without exposing row values."""
+    """Return schema evidence without exposing source row values."""
 
     keys = sorted({str(key) for row in rows for key in row})
-    return ResponseShape(row_count=len(rows), row_keys=tuple(keys))
+    normalized_keys = sorted({_normalize_schema_key(key) for key in keys})
+    fingerprint = hashlib.sha256(
+        json.dumps(normalized_keys, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    return ResponseShape(
+        row_count=len(rows),
+        row_keys=tuple(keys),
+        normalized_keys=tuple(normalized_keys),
+        schema_fingerprint=fingerprint,
+    )
+
+
+def validate_schema_contract(
+    rows: Sequence[Mapping[str, Any]],
+    expected_normalized_keys: frozenset[str],
+) -> ResponseShape:
+    """Fail closed when PIHPS adds or removes reviewed fields."""
+
+    shape = response_shape(rows)
+    actual = frozenset(shape.normalized_keys)
+    if actual != expected_normalized_keys:
+        added = sorted(actual - expected_normalized_keys)
+        removed = sorted(expected_normalized_keys - actual)
+        raise PihpsInterfaceError(
+            f"PIHPS schema changed; added={added or []}; removed={removed or []}"
+        )
+    return shape
 
 
 def pick_reference_id(
@@ -213,12 +307,70 @@ def pick_reference_id(
                 continue
             candidates.append(candidate)
             break
-
     if preferred and preferred in candidates:
         return preferred
     if candidates:
         return candidates[0]
     raise PihpsInterfaceError("PIHPS reference response did not contain a usable ID")
+
+
+def verify_payload_text(payload_text: str, expected_sha256: str) -> bool:
+    """Verify stored raw text against the source-capture hash."""
+
+    actual = hashlib.sha256(payload_text.encode("utf-8")).hexdigest()
+    return actual.lower() == expected_sha256.lower()
+
+
+def _normalize_schema_key(key: str) -> str:
+    return "<date>" if DATE_COLUMN_PATTERN.fullmatch(key) else key
+
+
+def _validate_source_url(url: str, allowed_hosts: frozenset[str]) -> None:
+    parsed = urlparse(url)
+    if parsed.scheme != "https":
+        raise ValueError("PIHPS source must use HTTPS")
+    host = (parsed.hostname or "").lower()
+    if host not in {item.lower() for item in allowed_hosts}:
+        raise ValueError(f"PIHPS source host is not allowlisted: {host or 'missing'}")
+
+
+def _parse_content_length(value: str | None) -> int | None:
+    if value is None or not value.strip():
+        return None
+    try:
+        length = int(value)
+    except ValueError as exc:
+        raise PihpsInterfaceError("PIHPS content-length header is invalid") from exc
+    if length < 0:
+        raise PihpsInterfaceError("PIHPS content-length header is invalid")
+    return length
+
+
+def _read_limited_body(response: Any, max_payload_bytes: int) -> bytes:
+    if hasattr(response, "iter_content"):
+        chunks: list[bytes] = []
+        size = 0
+        for chunk in response.iter_content(chunk_size=64 * 1024):
+            if not chunk:
+                continue
+            size += len(chunk)
+            if size > max_payload_bytes:
+                raise PihpsInterfaceError("PIHPS payload exceeds the configured size limit")
+            chunks.append(chunk)
+        return b"".join(chunks)
+    content = bytes(getattr(response, "content", b""))
+    if len(content) > max_payload_bytes:
+        raise PihpsInterfaceError("PIHPS payload exceeds the configured size limit")
+    return content
+
+
+def _request_fingerprint(path: str, params: Mapping[str, str | int]) -> str:
+    payload = {
+        "path": path,
+        "params": {str(key): str(value) for key, value in sorted(params.items())},
+    }
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def _format_source_date(value: date) -> str:
