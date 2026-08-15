@@ -1,12 +1,15 @@
-"""Probe candidate PIHPS JSON endpoints from a local machine or CI runner."""
+"""Collect schema-only evidence from the PIHPS public website interface."""
 
 from __future__ import annotations
 
 import argparse
 import json
-from dataclasses import asdict
+from datetime import date, datetime
+from pathlib import Path
+from zoneinfo import ZoneInfo
 
-from panganlens.ingestion.pihps_candidates import PihpsCandidateProbe
+from panganlens.ingestion.pihps_interface import PihpsInterfaceError, PihpsWebsiteClient
+from panganlens.ingestion.pihps_probe import build_probe_summary
 
 
 def main() -> int:
@@ -16,24 +19,35 @@ def main() -> int:
         default="https://www.bi.go.id/hargapangan",
     )
     parser.add_argument("--timeout", type=int, default=30)
+    parser.add_argument("--output", type=Path)
     args = parser.parse_args()
 
-    probe = PihpsCandidateProbe(
-        base_url=args.base_url,
-        timeout_seconds=args.timeout,
-    )
+    today_jakarta = date.today()
+    try:
+        today_jakarta = datetime.now(ZoneInfo("Asia/Jakarta")).date()
+        client = PihpsWebsiteClient(
+            base_url=args.base_url,
+            timeout_seconds=args.timeout,
+        )
+        summary = build_probe_summary(client, today_jakarta)
+        exit_code = 0
+    except (PihpsInterfaceError, KeyError, ValueError) as exc:
+        summary = {
+            "status": "fail",
+            "source": "PIHPS Bank Indonesia public website interface",
+            "reference_date": today_jakarta.isoformat(),
+            "error": str(exc),
+        }
+        exit_code = 1
 
-    results = [
-        probe.probe_reference("provinces"),
-        probe.probe_reference("commodities"),
-    ]
-    print(json.dumps([asdict(result) for result in results], indent=2))
+    rendered = json.dumps(summary, indent=2, sort_keys=True)
+    print(rendered)
 
-    healthy = all(
-        result.status_code == 200 and result.is_json and result.error is None
-        for result in results
-    )
-    return 0 if healthy else 1
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(f"{rendered}\n", encoding="utf-8")
+
+    return exit_code
 
 
 if __name__ == "__main__":
