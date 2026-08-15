@@ -1,3 +1,4 @@
+import json
 from datetime import date
 
 import pytest
@@ -10,23 +11,34 @@ from panganlens.ingestion.pihps_interface import (
     extract_rows,
     pick_reference_id,
     response_shape,
+    validate_schema_contract,
+    verify_payload_text,
 )
 
 
 class FakeResponse:
-    def __init__(self, payload, status_code=200, content_type="application/json"):
+    def __init__(
+        self,
+        payload,
+        status_code=200,
+        content_type="application/json",
+        extra_headers=None,
+    ):
         self.payload = payload
         self.status_code = status_code
-        self.headers = {"content-type": content_type}
+        rendered = json.dumps(payload).encode("utf-8")
+        self.content = rendered
+        self.headers = {"content-type": content_type, "content-length": str(len(rendered))}
+        if extra_headers:
+            self.headers.update(extra_headers)
 
     def raise_for_status(self):
         if self.status_code >= 400:
             raise requests.HTTPError(f"status {self.status_code}")
 
-    def json(self):
-        if isinstance(self.payload, Exception):
-            raise self.payload
-        return self.payload
+    def iter_content(self, chunk_size):
+        del chunk_size
+        yield self.content
 
 
 class FakeSession:
@@ -39,6 +51,15 @@ class FakeSession:
         return self.response
 
 
+def make_client(response, max_payload_bytes=2_000_000):
+    return PihpsWebsiteClient(
+        base_url="https://example.test",
+        session=FakeSession(response),
+        allowed_hosts=frozenset({"example.test"}),
+        max_payload_bytes=max_payload_bytes,
+    )
+
+
 def test_grid_request_builds_stable_params():
     request = GridRequest(
         price_type_id=1,
@@ -48,9 +69,7 @@ def test_grid_request_builds_stable_params():
         start_date=date(2026, 8, 10),
         end_date=date(2026, 8, 14),
     )
-
     params = request.as_params()
-
     assert params["regency_id"] == "3171,3172"
     assert params["showKota"] == "true"
     assert params["showPasar"] == "false"
@@ -82,22 +101,31 @@ def test_extract_rows_rejects_unknown_shape():
         extract_rows({"unexpected": []})
 
 
-def test_response_shape_exposes_keys_not_values():
-    shape = response_shape([{"province_id": 13, "name": "DKI"}, {"name": "Banten"}])
-
+def test_response_shape_normalizes_dynamic_date_keys():
+    shape = response_shape(
+        [
+            {"name": "A", "14/08/2026": 1},
+            {"name": "B", "13/08/2026": 2},
+        ]
+    )
     assert shape.row_count == 2
-    assert shape.row_keys == ("name", "province_id")
+    assert shape.normalized_keys == ("<date>", "name")
+    assert len(shape.schema_fingerprint) == 64
+
+
+def test_schema_contract_fails_closed_on_new_field():
+    rows = [{"id": "13", "name": "A", "unexpected": True}]
+    with pytest.raises(PihpsInterfaceError, match="schema changed"):
+        validate_schema_contract(rows, frozenset({"id", "name"}))
 
 
 def test_pick_reference_id_prefers_requested_value():
     rows = [{"province_id": 11}, {"province_id": 13}]
-
     assert pick_reference_id(rows, ("province_id", "id", "value"), preferred="13") == "13"
 
 
 def test_pick_reference_id_can_require_prefix():
     rows = [{"comcat_id": "cat_1"}, {"comcat_id": "com_3"}]
-
     assert pick_reference_id(
         rows,
         ("comcat_id", "id", "value"),
@@ -105,9 +133,9 @@ def test_pick_reference_id_can_require_prefix():
     ) == "com_3"
 
 
-def test_client_uses_expected_grid_endpoint_and_headers():
-    session = FakeSession(FakeResponse({"data": [{"x": 1}]}))
-    client = PihpsWebsiteClient(base_url="https://example.test", session=session)
+def test_client_records_hashes_and_disables_redirects():
+    response = FakeResponse({"data": [{"x": 1}]})
+    client = make_client(response)
     request = GridRequest(
         price_type_id=1,
         comcat_id="com_3",
@@ -115,19 +143,46 @@ def test_client_uses_expected_grid_endpoint_and_headers():
         start_date=date(2026, 8, 10),
         end_date=date(2026, 8, 14),
     )
-
-    rows = client.fetch_grid(request)
-
-    assert rows == [{"x": 1}]
-    url, kwargs = session.calls[0]
-    assert url.endswith("/WebSite/TabelHarga/GetGridDataKomoditas")
-    assert kwargs["headers"]["X-Requested-With"] == "XMLHttpRequest"
-    assert kwargs["headers"]["User-Agent"].startswith("PanganLens/")
+    capture = client.fetch_grid_capture(request)
+    assert capture.rows == ({"x": 1},)
+    assert len(capture.evidence.payload_sha256) == 64
+    assert len(capture.evidence.request_fingerprint) == 64
+    assert verify_payload_text(capture.payload_text, capture.evidence.payload_sha256)
+    _, kwargs = client.session.calls[0]
+    assert kwargs["allow_redirects"] is False
+    assert kwargs["stream"] is True
 
 
 def test_client_rejects_non_json_response():
-    session = FakeSession(FakeResponse(ValueError("bad json"), content_type="text/html"))
-    client = PihpsWebsiteClient(base_url="https://example.test", session=session)
-
-    with pytest.raises(PihpsInterfaceError, match="non-JSON"):
+    client = make_client(FakeResponse({"x": 1}, content_type="text/html"))
+    with pytest.raises(PihpsInterfaceError, match="content-type"):
         client.fetch_reference("provinces")
+
+
+def test_client_rejects_redirect():
+    client = make_client(FakeResponse({"x": 1}, status_code=302))
+    with pytest.raises(PihpsInterfaceError, match="redirect"):
+        client.fetch_reference("provinces")
+
+
+def test_client_rejects_oversized_payload_from_header():
+    response = FakeResponse(
+        {"data": [{"x": 1}]},
+        extra_headers={"content-length": "999"},
+    )
+    client = make_client(response, max_payload_bytes=100)
+    with pytest.raises(PihpsInterfaceError, match="size limit"):
+        client.fetch_reference("provinces")
+
+
+def test_client_rejects_non_https_source():
+    with pytest.raises(ValueError, match="HTTPS"):
+        PihpsWebsiteClient(
+            base_url="http://example.test",
+            allowed_hosts=frozenset({"example.test"}),
+        )
+
+
+def test_client_rejects_unapproved_host():
+    with pytest.raises(ValueError, match="allowlisted"):
+        PihpsWebsiteClient(base_url="https://example.test")
