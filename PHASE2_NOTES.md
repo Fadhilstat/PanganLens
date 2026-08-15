@@ -1,53 +1,57 @@
-# PanganLens Phase 2.1 Foundation
+# PanganLens Phase 2 Technical Notes
 
-This package is intentionally limited to the data foundation. It does not yet
-promote an undocumented PIHPS website endpoint to a production API.
+Phase 2 is building the trusted data path before dashboard development. The
+current branch does not promote the PIHPS website route to a documented public
+API. It treats the route as a guarded implementation detail of the official
+public site.
 
 ## What is included
 
 - Provider-neutral ingestion contract
-- PIHPS candidate endpoint probe
-- Strict price observation model
-- Source-independent business key
-- Source-independent semantic record hash
+- Guarded PIHPS website client
+- HTTPS and source-host allowlist
+- Redirect, content-type, and payload-size checks
+- Request, schema, and payload SHA-256 fingerprints
+- Strict dynamic-date PIHPS grid parser
+- Source-independent business keys and semantic record hashes
 - Exact duplicate classification
 - Value conflict quarantine
-- BigQuery 3NF DDL
-- Raw, staging, and operations DDL
-- Post-load data quality queries
+- Revision history tables
+- BigQuery 3NF core DDL
+- Raw, staging, operations, and data quality DDL
+- Pre-staging and post-load quality gates
+- Curated Looker Studio semantic views
 - Tests that reject em dash characters in Python files
 
-## Promotion rule for the PIHPS JSON route
+## Live PIHPS evidence
 
-The JSON route can become the first ingestion provider only after a live probe
-returns HTTP 200, valid JSON, non-empty reference data, and a stable response
-shape across repeated checks. Until then, it remains a candidate route and the
-report or download path stays the fallback.
+Two GitHub-hosted live probes on 15 August 2026 returned the same reviewed schema:
+
+- Province reference: 34 rows with `id` and `name`
+- Commodity reference: 31 rows with `cat_id`, `denomination`, `id`, `name`, and `sort`
+- Grid response: dynamic `DD/MM/YYYY` columns plus `level`, `name`, and `no`
+
+The grid schema is normalized before fingerprinting so a new observation date
+does not look like a schema change. Any new non-date field still fails closed and
+requires review.
+
+## Schedule
+
+The source probe is scheduled daily at 11:00 UTC, which is 18:00 WIB. The daily
+schedule runs the source probe only. Deterministic tests, Ruff, and compile checks
+run on pull requests and manual workflow runs.
+
+## Promotion rule
+
+The website JSON route can remain the preferred source method only while live
+probes return valid JSON, match the reviewed schema contract, and pass transport
+and integrity checks. Report or download extraction remains the fallback path.
 
 ## Next implementation slice
 
-1. Run the live PIHPS probe from a network that can reach bi.go.id.
-2. Capture a small raw response for one date range.
-3. Define the parser against the observed response shape.
-4. Load normalized rows into staging.
-5. Run duplicate, conflict, and referential checks.
-6. Promote only validated rows into the 3NF core tables.
-
-## Phase 2.2 live source evidence
-
-The PIHPS website JSON routes remain an undocumented implementation detail.
-Phase 2.2 adds a guarded client that accepts only row-oriented JSON responses
-and rejects unexpected shapes before any normalization or warehouse load begins.
-
-The repository also includes a schema-only live probe. It records row counts
-and field names, but it does not publish source row values. The network probe
-runs separately from deterministic unit tests so an external outage cannot be
-mistaken for a code-quality failure.
-
-The scheduled source probe is set for 11:00 UTC every day, which is 18:00 WIB.
-This is intentionally several hours after PIHPS states that its normal daily
-publication process is expected to complete around 13:00 WIB. Historical
-revisions remain possible, so later ingestion work must preserve revision
-history rather than silently overwriting validated observations. A scheduled
-run that finds no new validated observation should finish as NO_NEW_DATA and
-must not create duplicate warehouse rows.
+1. Build canonical commodity and region mapping from reviewed PIHPS references.
+2. Store exact raw captures and source evidence in BigQuery.
+3. Parse grid cells into staging candidates without guessing canonical IDs.
+4. Quarantine unmapped, invalid, duplicate, or conflicting rows.
+5. Promote only validated rows into the 3NF core.
+6. Refresh curated Looker Studio marts after all publication gates pass.
