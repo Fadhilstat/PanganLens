@@ -9,13 +9,20 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: panganlens-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   tests:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - name: Install project
@@ -23,16 +30,19 @@ jobs:
       - name: Run tests
         run: pytest -q
       - name: Run Ruff
-        run: ruff check .
+        run: ruff check src scripts tests
       - name: Compile Python
         run: python -m compileall -q src scripts tests
 
   live-pihps-probe:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - name: Install project
