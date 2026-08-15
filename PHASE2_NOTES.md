@@ -32,3 +32,20 @@ report or download path stays the fallback.
 4. Load normalized rows into staging.
 5. Run duplicate, conflict, and referential checks.
 6. Promote only validated rows into the 3NF core tables.
+
+## Phase 2.2 live source evidence
+
+The PIHPS website JSON routes remain an undocumented implementation detail.
+Phase 2.2 adds a guarded client that accepts only row-oriented JSON responses
+and rejects unexpected shapes before any normalization or warehouse load begins.
+
+The repository also includes a schema-only live probe. It records row counts
+and field names, but it does not publish source row values. The network probe
+runs separately from deterministic unit tests so an external outage cannot be
+mistaken for a code-quality failure.
+
+The scheduled probe is set for 07:20 UTC on weekdays, which is 14:20 WIB. This
+is intentionally after PIHPS states that its normal daily publication process
+is expected to complete around 13:00 WIB. Historical revisions remain possible,
+so later ingestion work must preserve revision history rather than silently
+overwriting validated observations.
