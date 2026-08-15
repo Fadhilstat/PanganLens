@@ -44,8 +44,10 @@ and field names, but it does not publish source row values. The network probe
 runs separately from deterministic unit tests so an external outage cannot be
 mistaken for a code-quality failure.
 
-The scheduled probe is set for 07:20 UTC on weekdays, which is 14:20 WIB. This
-is intentionally after PIHPS states that its normal daily publication process
-is expected to complete around 13:00 WIB. Historical revisions remain possible,
-so later ingestion work must preserve revision history rather than silently
-overwriting validated observations.
+The scheduled source probe is set for 11:00 UTC every day, which is 18:00 WIB.
+This is intentionally several hours after PIHPS states that its normal daily
+publication process is expected to complete around 13:00 WIB. Historical
+revisions remain possible, so later ingestion work must preserve revision
+history rather than silently overwriting validated observations. A scheduled
+run that finds no new validated observation should finish as NO_NEW_DATA and
+must not create duplicate warehouse rows.
