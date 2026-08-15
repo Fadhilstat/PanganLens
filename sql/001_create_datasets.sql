@@ -1,0 +1,5 @@
+CREATE SCHEMA IF NOT EXISTS panganlens_raw;
+CREATE SCHEMA IF NOT EXISTS panganlens_staging;
+CREATE SCHEMA IF NOT EXISTS panganlens_core;
+CREATE SCHEMA IF NOT EXISTS panganlens_mart;
+CREATE SCHEMA IF NOT EXISTS panganlens_ops;
