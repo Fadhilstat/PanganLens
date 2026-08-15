@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
 
 from panganlens.domain.models import PriceObservation
 
@@ -32,13 +32,11 @@ def classify_batch(observations: Iterable[PriceObservation]) -> BatchQualityResu
     clean: list[PriceObservation] = []
     exact_duplicates: list[PriceObservation] = []
     conflicts: list[PriceObservation] = []
-
     for group in by_key.values():
         record_hashes = {item.record_hash() for item in group}
         if len(record_hashes) > 1:
             conflicts.extend(group)
             continue
-
         clean.append(group[0])
         exact_duplicates.extend(group[1:])
 
