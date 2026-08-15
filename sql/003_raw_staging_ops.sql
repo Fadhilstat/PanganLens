@@ -68,6 +68,8 @@ CREATE TABLE IF NOT EXISTS panganlens_staging.normalized_price_candidate (
   price NUMERIC NOT NULL,
   source_method STRING NOT NULL,
   mapping_status STRING NOT NULL,
+  mapping_version INT64,
+  mapping_key_fingerprint STRING,
   validation_status STRING NOT NULL,
   quarantine_reason STRING,
   business_key_hash STRING,
