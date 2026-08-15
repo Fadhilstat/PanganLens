@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS panganlens_core.commodity (
   unit_id STRING NOT NULL,
   commodity_name STRING NOT NULL,
   source_commodity_code STRING,
+  display_order INT64,
   is_active BOOL NOT NULL,
   created_at TIMESTAMP NOT NULL,
   updated_at TIMESTAMP NOT NULL,
