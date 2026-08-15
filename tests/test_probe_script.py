@@ -1,24 +1,54 @@
 from datetime import date
 
-from panganlens.ingestion.pihps_interface import PihpsWebsiteClient
+from panganlens.ingestion.pihps_interface import SourceEvidence, SourceRows
 from panganlens.ingestion.pihps_probe import build_probe_summary, previous_business_day
 
 
-class FakeClient(PihpsWebsiteClient):
-    def __init__(self):
-        pass
+def _capture(rows):
+    evidence = SourceEvidence(
+        source_url="https://www.bi.go.id/hargapangan/test",
+        source_host="www.bi.go.id",
+        content_type="application/json",
+        payload_bytes=2,
+        payload_sha256="0" * 64,
+        request_fingerprint="1" * 64,
+        schema_fingerprint="2" * 64,
+    )
+    return SourceRows(rows=tuple(rows), payload_text="{}", evidence=evidence)
 
-    def fetch_reference(self, name, params=None):
+
+class FakeClient:
+    def fetch_reference_capture(self, name, params=None):
+        assert params is None
         if name == "provinces":
-            return [{"province_id": 13, "province_name": "DKI Jakarta"}]
+            return _capture([{"id": 13, "name": "DKI Jakarta"}])
         if name == "commodities":
-            return [{"comcat_id": "com_3", "commodity_name": "Beras"}]
+            return _capture(
+                [
+                    {
+                        "cat_id": "1",
+                        "denomination": "Rp/kg",
+                        "id": "com_3",
+                        "name": "Beras",
+                        "sort": 1,
+                    }
+                ]
+            )
         raise KeyError(name)
 
-    def fetch_grid(self, request):
+    def fetch_grid_capture(self, request):
         assert request.province_id == "13"
         assert request.comcat_id == "com_3"
-        return [{"name": "DKI Jakarta", "2026-08-14": 15000}]
+        return _capture(
+            [
+                {
+                    "14/08/2026": 15000,
+                    "level": 1,
+                    "name": "DKI Jakarta",
+                    "no": 1,
+                }
+            ]
+        )
 
 
 def test_previous_business_day_skips_weekend():
@@ -32,4 +62,9 @@ def test_probe_summary_contains_schema_only_evidence():
     assert summary["status"] == "pass"
     assert summary["probe_window"]["end_date"] == "2026-08-14"
     assert summary["response_shapes"]["grid"]["row_count"] == 1
-    assert summary["response_shapes"]["grid"]["row_keys"] == ("2026-08-14", "name")
+    assert summary["response_shapes"]["grid"]["normalized_keys"] == (
+        "<date>",
+        "level",
+        "name",
+        "no",
+    )
