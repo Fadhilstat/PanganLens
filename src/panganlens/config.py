@@ -16,7 +16,7 @@ class Settings:
     source_base_url: str = "https://www.bi.go.id/hargapangan"
 
     @classmethod
-    def from_env(cls) -> "Settings":
+    def from_env(cls) -> Settings:
         project = os.getenv("PANGANLENS_BQ_PROJECT", "").strip()
         if not project:
             raise ValueError("PANGANLENS_BQ_PROJECT must be set")
