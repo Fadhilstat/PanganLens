@@ -1,9 +1,6 @@
 """Stable dataset names and fact-table grains used by the warehouse layer."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
-
 
 DATASETS = (
     "panganlens_raw",
