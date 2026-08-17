@@ -7,6 +7,8 @@ from datetime import date, datetime
 
 from google.cloud import bigquery
 
+from panganlens.warehouse.loader import PROJECT_ID_PATTERN
+
 VALID_FINAL_STATUSES = {"SUCCESS", "NO_NEW_DATA", "BLOCKED", "FAILED"}
 
 
@@ -62,6 +64,8 @@ class BigQueryRunStateManager:
         client: bigquery.Client | None = None,
         location: str = "asia-southeast2",
     ) -> None:
+        if not PROJECT_ID_PATTERN.fullmatch(project_id):
+            raise ValueError("project_id is not a valid Google Cloud project ID")
         self.project_id = project_id
         self.location = location
         self.client = client or bigquery.Client(project=project_id, location=location)
@@ -81,6 +85,14 @@ class BigQueryRunStateManager:
     @staticmethod
     def _finalize_query(advance_publish: bool) -> str:
         run_merge = """
+ASSERT (
+  SELECT COUNT(*) = 0
+  FROM panganlens_ops.pipeline_run
+  WHERE run_id = @run_id
+    AND status IN ('SUCCESS', 'NO_NEW_DATA', 'BLOCKED', 'FAILED')
+    AND status != @status
+) AS 'pipeline run already finalized with a different status';
+
 MERGE panganlens_ops.pipeline_run AS target
 USING (
   SELECT
@@ -100,7 +112,6 @@ ON target.run_id = source.run_id
 WHEN MATCHED THEN
   UPDATE SET
     finished_at = source.finished_at,
-    status = source.status,
     source_observation_date = source.source_observation_date,
     rows_received = source.rows_received,
     rows_clean = source.rows_clean,
@@ -150,7 +161,8 @@ USING (
     @finished_at AS published_at
 ) AS source
 ON target.state_name = source.state_name
-WHEN MATCHED THEN
+WHEN MATCHED
+  AND source.active_observation_date >= target.active_observation_date THEN
   UPDATE SET
     active_run_id = source.active_run_id,
     active_observation_date = source.active_observation_date,
