@@ -53,7 +53,14 @@ class BigQueryPromotionRunner:
             raise PromotionBlockedError("ingestion summary is not promotion eligible")
 
         pre_checks = self._run_pre_checks(run_id)
-        failed = [check.check_name for check in pre_checks if check.status != "PASS"]
+        if not pre_checks:
+            raise PromotionBlockedError("pre-promotion checks returned no results")
+
+        failed = [
+            check.check_name
+            for check in pre_checks
+            if check.status != "PASS" or check.failure_count != 0
+        ]
         if failed:
             names = ", ".join(sorted(failed))
             raise PromotionBlockedError(f"pre-promotion checks failed: {names}")
