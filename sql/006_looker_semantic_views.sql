@@ -84,6 +84,62 @@ FROM (
 )
 WHERE row_rank = 1;
 
+CREATE OR REPLACE VIEW panganlens_mart.vw_looker_province_map AS
+WITH latest_province AS (
+  SELECT
+    observation_date,
+    commodity_id,
+    commodity_name,
+    category_id,
+    category_name,
+    commodity_display_order,
+    unit_id,
+    unit_name,
+    unit_symbol,
+    channel_id,
+    channel_name,
+    region_id,
+    region_name,
+    price_idr,
+    price_unit_label,
+    loaded_at
+  FROM panganlens_mart.vw_looker_latest_region_price
+  WHERE region_level = 'province'
+),
+benchmarked AS (
+  SELECT
+    latest_province.*,
+    AVG(price_idr) OVER (
+      PARTITION BY observation_date, commodity_id, channel_id
+    ) AS province_average_price_idr
+  FROM latest_province
+)
+SELECT
+  observation_date,
+  commodity_id,
+  commodity_name,
+  category_id,
+  category_name,
+  commodity_display_order,
+  unit_id,
+  unit_name,
+  unit_symbol,
+  channel_id,
+  channel_name,
+  region_id AS province_id,
+  region_name AS province_name,
+  region_name AS map_location,
+  'ID' AS map_country_code,
+  price_idr,
+  province_average_price_idr,
+  SAFE_DIVIDE(
+    price_idr - province_average_price_idr,
+    province_average_price_idr
+  ) AS price_gap_vs_province_average_pct,
+  price_unit_label,
+  loaded_at
+FROM benchmarked;
+
 CREATE OR REPLACE VIEW panganlens_mart.vw_looker_pipeline_health AS
 SELECT
   run_id,
