@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
 import pytest
@@ -45,7 +45,7 @@ def _candidate(**overrides):
         "mapping_key_fingerprint": "a" * 64,
         "validation_status": "VALID",
         "quarantine_reason": None,
-        "normalized_at": datetime(2026, 8, 17, 18, 0, tzinfo=timezone.utc),
+        "normalized_at": datetime(2026, 8, 17, 18, 0, tzinfo=UTC),
     }
     values.update(overrides)
     return StagingCandidate(**values)
