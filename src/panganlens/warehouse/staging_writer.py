@@ -163,7 +163,10 @@ def prepare_batch(candidates: list[StagingCandidate]) -> PreparedBatch:
         )
 
     unique_valid = [next(iter(records.values())) for records in valid_by_key.values()]
-    return PreparedBatch(rows=tuple(unique_valid + passthrough), exact_duplicate_count=duplicate_count)
+    return PreparedBatch(
+        rows=tuple(unique_valid + passthrough),
+        exact_duplicate_count=duplicate_count,
+    )
 
 
 class BigQueryStagingWriter:
