@@ -14,6 +14,16 @@ CREATE TABLE IF NOT EXISTS panganlens_ops.pipeline_run (
 )
 PARTITION BY DATE(started_at);
 
+CREATE TABLE IF NOT EXISTS panganlens_ops.publish_state (
+  state_name STRING NOT NULL,
+  active_run_id STRING NOT NULL,
+  active_observation_date DATE NOT NULL,
+  published_at TIMESTAMP NOT NULL,
+  PRIMARY KEY (state_name) NOT ENFORCED,
+  FOREIGN KEY (active_run_id)
+    REFERENCES panganlens_ops.pipeline_run(run_id) NOT ENFORCED
+);
+
 CREATE TABLE IF NOT EXISTS panganlens_ops.source_capture (
   capture_id STRING NOT NULL,
   run_id STRING NOT NULL,
