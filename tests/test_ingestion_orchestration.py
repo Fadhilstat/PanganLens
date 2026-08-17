@@ -7,7 +7,11 @@ from panganlens.ingestion.orchestration import (
     IngestionContext,
     ingest_grid_capture,
 )
-from panganlens.ingestion.pihps_interface import SourceEvidence, SourceRows
+from panganlens.ingestion.pihps_interface import (
+    PihpsInterfaceError,
+    SourceEvidence,
+    SourceRows,
+)
 
 
 class FakeRawWarehouse:
@@ -178,7 +182,7 @@ def test_raw_evidence_remains_written_when_parser_rejects_schema():
         }
     ]
 
-    with pytest.raises(Exception):
+    with pytest.raises(PihpsInterfaceError):
         ingest_grid_capture(
             _source(bad_rows),
             _context(),
