@@ -80,3 +80,43 @@ ASSERT (
   SELECT COUNTIF(resolution_status = 'OPEN') = 0
   FROM panganlens_ops.conflict_log
 ) AS 'post-promotion check failed: unresolved conflicts remain';
+
+ASSERT (
+  SELECT COUNT(*) = 0
+  FROM promotion_batch AS batch
+  LEFT JOIN panganlens_core.food_price_national AS fact
+    ON batch.scope = 'national'
+    AND fact.observation_date = batch.observation_date
+    AND fact.commodity_id = batch.commodity_id
+    AND fact.channel_id = batch.channel_id
+    AND fact.record_hash = batch.record_hash
+  WHERE batch.scope = 'national'
+    AND fact.record_hash IS NULL
+) AS 'post-promotion reconciliation failed: national row missing from core';
+
+ASSERT (
+  SELECT COUNT(*) = 0
+  FROM promotion_batch AS batch
+  LEFT JOIN panganlens_core.food_price_region AS fact
+    ON batch.scope = 'region'
+    AND fact.observation_date = batch.observation_date
+    AND fact.commodity_id = batch.commodity_id
+    AND fact.channel_id = batch.channel_id
+    AND fact.region_id = batch.region_id
+    AND fact.record_hash = batch.record_hash
+  WHERE batch.scope = 'region'
+    AND fact.record_hash IS NULL
+) AS 'post-promotion reconciliation failed: region row missing from core';
+
+ASSERT (
+  SELECT COUNT(*) = 0
+  FROM promotion_batch AS batch
+  LEFT JOIN panganlens_core.food_price_market AS fact
+    ON batch.scope = 'market'
+    AND fact.observation_date = batch.observation_date
+    AND fact.commodity_id = batch.commodity_id
+    AND fact.market_id = batch.market_id
+    AND fact.record_hash = batch.record_hash
+  WHERE batch.scope = 'market'
+    AND fact.record_hash IS NULL
+) AS 'post-promotion reconciliation failed: market row missing from core';

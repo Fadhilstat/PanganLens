@@ -82,7 +82,7 @@ SELECT
   'PIHPS returned a different validated value for an existing business key.'
 FROM promotion_batch AS batch
 INNER JOIN panganlens_core.food_price_national AS current_fact
-  ON batch.scope = 'NATIONAL'
+  ON batch.scope = 'national'
   AND current_fact.observation_date = batch.observation_date
   AND current_fact.commodity_id = batch.commodity_id
   AND current_fact.channel_id = batch.channel_id
@@ -128,7 +128,7 @@ SELECT
   'PIHPS returned a different validated value for an existing business key.'
 FROM promotion_batch AS batch
 INNER JOIN panganlens_core.food_price_region AS current_fact
-  ON batch.scope = 'REGION'
+  ON batch.scope = 'region'
   AND current_fact.observation_date = batch.observation_date
   AND current_fact.commodity_id = batch.commodity_id
   AND current_fact.channel_id = batch.channel_id
@@ -175,7 +175,7 @@ SELECT
   'PIHPS returned a different validated value for an existing business key.'
 FROM promotion_batch AS batch
 INNER JOIN panganlens_core.food_price_market AS current_fact
-  ON batch.scope = 'MARKET'
+  ON batch.scope = 'market'
   AND current_fact.observation_date = batch.observation_date
   AND current_fact.commodity_id = batch.commodity_id
   AND current_fact.market_id = batch.market_id
@@ -192,7 +192,7 @@ MERGE panganlens_core.food_price_national AS target
 USING (
   SELECT *
   FROM promotion_batch
-  WHERE scope = 'NATIONAL'
+  WHERE scope = 'national'
 ) AS source
 ON target.observation_date = source.observation_date
 AND target.commodity_id = source.commodity_id
@@ -227,7 +227,7 @@ MERGE panganlens_core.food_price_region AS target
 USING (
   SELECT *
   FROM promotion_batch
-  WHERE scope = 'REGION'
+  WHERE scope = 'region'
 ) AS source
 ON target.observation_date = source.observation_date
 AND target.commodity_id = source.commodity_id
@@ -265,7 +265,7 @@ MERGE panganlens_core.food_price_market AS target
 USING (
   SELECT *
   FROM promotion_batch
-  WHERE scope = 'MARKET'
+  WHERE scope = 'market'
 ) AS source
 ON target.observation_date = source.observation_date
 AND target.commodity_id = source.commodity_id
