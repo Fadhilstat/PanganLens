@@ -65,6 +65,35 @@ def test_ineligible_ingestion_never_queries_bigquery(tmp_path):
     assert client.calls == []
 
 
+def test_empty_precheck_result_blocks_transaction(tmp_path):
+    client = FakeClient([])
+    runner = BigQueryPromotionRunner(
+        "panganlens-demo",
+        client=client,
+        sql_dir=_sql_dir(tmp_path),
+    )
+
+    with pytest.raises(PromotionBlockedError, match="returned no results"):
+        runner.promote("run-1", ingestion_eligible=True)
+
+    assert len(client.calls) == 1
+
+
+def test_nonzero_failure_count_blocks_even_when_status_says_pass(tmp_path):
+    rows = [{"check_name": "duplicate_gate", "failure_count": 1, "status": "PASS"}]
+    client = FakeClient(rows)
+    runner = BigQueryPromotionRunner(
+        "panganlens-demo",
+        client=client,
+        sql_dir=_sql_dir(tmp_path),
+    )
+
+    with pytest.raises(PromotionBlockedError, match="duplicate_gate"):
+        runner.promote("run-1", ingestion_eligible=True)
+
+    assert len(client.calls) == 1
+
+
 def test_failed_precheck_blocks_transaction(tmp_path):
     rows = [{"check_name": "duplicate_gate", "failure_count": 1, "status": "FAIL"}]
     client = FakeClient(rows)
@@ -118,7 +147,18 @@ def test_run_id_is_parameterized_for_checks_and_transaction(tmp_path):
         assert parameter.value == "run-20260818"
 
 
-def test_post_assertion_contract_contains_duplicate_and_numeric_gates():
+def test_promotion_scope_matches_lowercase_staging_contract():
+    sql = Path("sql/010_promote_staging_to_core.sql").read_text(encoding="utf-8")
+
+    assert "scope = 'national'" in sql
+    assert "scope = 'region'" in sql
+    assert "scope = 'market'" in sql
+    assert "scope = 'NATIONAL'" not in sql
+    assert "scope = 'REGION'" not in sql
+    assert "scope = 'MARKET'" not in sql
+
+
+def test_post_assertion_contract_contains_duplicate_numeric_and_reconciliation_gates():
     sql = Path("sql/011_post_promotion_assertions.sql").read_text(encoding="utf-8")
 
     assert "national business key is not unique" in sql
@@ -126,3 +166,6 @@ def test_post_assertion_contract_contains_duplicate_and_numeric_gates():
     assert "market business key is not unique" in sql
     assert "non-positive price" in sql
     assert "unresolved conflicts remain" in sql
+    assert "national row missing from core" in sql
+    assert "region row missing from core" in sql
+    assert "market row missing from core" in sql
