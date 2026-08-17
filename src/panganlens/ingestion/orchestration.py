@@ -70,6 +70,7 @@ class IngestionSummary:
     staged_rows: int
     exact_duplicates: int
     quarantined_rows: int
+    latest_observation_date: date | None
     promotion_eligible: bool
 
 
@@ -96,6 +97,10 @@ def ingest_grid_capture(
     ]
     prepared = staging_writer.persist_batch(candidates)
     quarantined = sum(row.validation_status != "VALID" for row in prepared.rows)
+    latest_observation_date = max(
+        (point.observation_date for point in parsed.points),
+        default=None,
+    )
 
     return IngestionSummary(
         parsed_points=len(parsed.points),
@@ -103,6 +108,7 @@ def ingest_grid_capture(
         staged_rows=len(prepared.rows),
         exact_duplicates=prepared.exact_duplicate_count,
         quarantined_rows=quarantined,
+        latest_observation_date=latest_observation_date,
         promotion_eligible=quarantined == 0,
     )
 
