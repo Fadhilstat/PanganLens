@@ -9,11 +9,7 @@ from typing import Protocol
 from panganlens.ingestion.pihps_interface import SourceRows
 from panganlens.ingestion.pihps_parser import GridPricePoint, parse_grid_rows
 from panganlens.warehouse.loader import BigQueryWarehouse, RawCaptureRecord
-from panganlens.warehouse.staging_writer import (
-    BigQueryStagingWriter,
-    PreparedBatch,
-    StagingCandidate,
-)
+from panganlens.warehouse.staging_writer import BigQueryStagingWriter, StagingCandidate
 
 
 @dataclass(frozen=True, slots=True)
