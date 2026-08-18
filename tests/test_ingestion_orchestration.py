@@ -49,6 +49,8 @@ class ExactResolver:
 
 def _source(rows):
     payload_text = '[{"name":"Jawa Barat"}]'
+    requested_at = datetime(2026, 8, 17, 17, 59, tzinfo=UTC)
+    completed_at = datetime(2026, 8, 17, 18, 0, tzinfo=UTC)
     evidence = SourceEvidence(
         source_url="https://www.bi.go.id/hargapangan/test",
         source_host="www.bi.go.id",
@@ -57,6 +59,9 @@ def _source(rows):
         payload_sha256="f" * 64,
         request_fingerprint="a" * 64,
         schema_fingerprint="b" * 64,
+        requested_at=requested_at,
+        completed_at=completed_at,
+        http_status=200,
     )
     return SourceRows(rows=tuple(rows), payload_text=payload_text, evidence=evidence)
 
@@ -130,6 +135,9 @@ def test_source_integrity_evidence_is_copied_to_raw_record():
     assert record.request_fingerprint == "a" * 64
     assert record.schema_fingerprint == "b" * 64
     assert record.payload_sha256 == "f" * 64
+    assert record.source_host == "www.bi.go.id"
+    assert record.http_status == 200
+    assert record.requested_at < record.completed_at
 
 
 def test_missing_mapping_is_quarantined_and_blocks_promotion():
