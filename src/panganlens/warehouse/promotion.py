@@ -84,7 +84,7 @@ class BigQueryPromotionRunner:
         )
 
     def _audit_cross_capture_rows(self, run_id: str) -> None:
-        query = self._read_sql("012_audit_cross_capture_duplicates.sql")
+        query = self._read_sql("013_audit_cross_capture_duplicates.sql")
         self._execute(query, run_id)
 
     def _run_pre_checks(self, run_id: str) -> tuple[QualityCheck, ...]:
