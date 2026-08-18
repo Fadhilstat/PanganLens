@@ -143,3 +143,12 @@ When production ingestion reaches that phase, create a separately reviewed write
 ## Cost boundary
 
 The smoke query and readiness queries are small and bounded by the code where applicable, but BigQuery remains a metered service. Keep billing alerts and query controls enabled. If portfolio usage approaches the free-tier allowance, reduce or stop refreshes instead of silently accepting charges.
+
+## Verified references
+
+These primary sources were checked live on 18 August 2026 before this onboarding was updated:
+
+- Google Cloud, Workload Identity Federation with deployment pipelines: https://cloud.google.com/iam/docs/workload-identity-federation-with-deployment-pipelines
+- Google Cloud SDK, `gcloud iam workload-identity-pools providers create-oidc`: https://cloud.google.com/sdk/gcloud/reference/iam/workload-identity-pools/providers/create-oidc
+- Google Cloud, BigQuery IAM roles and permissions: https://cloud.google.com/bigquery/docs/access-control
+- `google-github-actions/auth`, direct Workload Identity Federation setup: https://github.com/google-github-actions/auth#direct-wif
