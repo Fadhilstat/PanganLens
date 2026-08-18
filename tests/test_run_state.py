@@ -35,16 +35,25 @@ def _outcome(status="SUCCESS", observation_date=date(2026, 8, 17), error_message
     )
 
 
-def test_success_advances_public_publish_pointer():
+def test_success_advances_public_publish_pointer_atomically():
     client = FakeClient()
     manager = BigQueryRunStateManager("panganlens-prod", client=client)
 
     manager.finalize(_outcome())
 
     query = client.calls[0][0]
+    assert query.startswith("BEGIN TRANSACTION;")
     assert "MERGE panganlens_ops.pipeline_run" in query
     assert "MERGE panganlens_ops.publish_state" in query
-    assert "source.active_observation_date >= target.active_observation_date" in query
+    assert query.rstrip().endswith("COMMIT TRANSACTION;")
+
+
+def test_publish_pointer_never_moves_backward_for_same_observation_date():
+    query = BigQueryRunStateManager._finalize_query(advance_publish=True)
+
+    assert "source.active_observation_date > target.active_observation_date" in query
+    assert "source.active_observation_date = target.active_observation_date" in query
+    assert "source.published_at >= target.published_at" in query
 
 
 def test_no_new_data_keeps_last_known_good_pointer():
@@ -56,6 +65,7 @@ def test_no_new_data_keeps_last_known_good_pointer():
     query = client.calls[0][0]
     assert "MERGE panganlens_ops.pipeline_run" in query
     assert "MERGE panganlens_ops.publish_state" not in query
+    assert "BEGIN TRANSACTION" not in query
 
 
 @pytest.mark.parametrize("status", ["BLOCKED", "FAILED"])
