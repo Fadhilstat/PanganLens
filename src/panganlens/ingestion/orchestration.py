@@ -9,7 +9,11 @@ from typing import Protocol
 from panganlens.ingestion.pihps_interface import SourceRows
 from panganlens.ingestion.pihps_parser import GridPricePoint, parse_grid_rows
 from panganlens.warehouse.loader import BigQueryWarehouse, RawCaptureRecord
-from panganlens.warehouse.staging_writer import BigQueryStagingWriter, StagingCandidate
+from panganlens.warehouse.staging_writer import (
+    BigQueryStagingWriter,
+    StagingCandidate,
+    StagingConflictError,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -69,6 +73,7 @@ class IngestionSummary:
     missing_price_cells: int
     staged_rows: int
     exact_duplicates: int
+    conflict_rows: int
     quarantined_rows: int
     latest_observation_date: date | None
     promotion_eligible: bool
@@ -95,18 +100,32 @@ def ingest_grid_capture(
         _staging_candidate(point, context, resolver.resolve(point, context))
         for point in parsed.points
     ]
-    prepared = staging_writer.persist_batch(candidates)
-    quarantined = sum(row.validation_status != "VALID" for row in prepared.rows)
     latest_observation_date = max(
         (point.observation_date for point in parsed.points),
         default=None,
     )
 
+    try:
+        prepared = staging_writer.persist_batch(candidates)
+    except StagingConflictError as exc:
+        return IngestionSummary(
+            parsed_points=len(parsed.points),
+            missing_price_cells=parsed.missing_price_cells,
+            staged_rows=0,
+            exact_duplicates=0,
+            conflict_rows=exc.conflict_count,
+            quarantined_rows=0,
+            latest_observation_date=latest_observation_date,
+            promotion_eligible=False,
+        )
+
+    quarantined = sum(row.validation_status != "VALID" for row in prepared.rows)
     return IngestionSummary(
         parsed_points=len(parsed.points),
         missing_price_cells=parsed.missing_price_cells,
         staged_rows=len(prepared.rows),
         exact_duplicates=prepared.exact_duplicate_count,
+        conflict_rows=0,
         quarantined_rows=quarantined,
         latest_observation_date=latest_observation_date,
         promotion_eligible=quarantined == 0,
