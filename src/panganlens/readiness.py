@@ -8,6 +8,11 @@ from typing import Any
 from google.api_core.exceptions import GoogleAPICallError, NotFound
 from google.cloud import bigquery
 
+from panganlens.cost_guard import (
+    DEFAULT_STORAGE_SAFETY_BYTES,
+    estimate_storage,
+    storage_sql,
+)
 from panganlens.warehouse.loader import PROJECT_ID_PATTERN
 
 DEFAULT_LOCATION = "asia-southeast2"
@@ -82,14 +87,18 @@ class BigQueryReadinessInspector:
         client: bigquery.Client | None = None,
         location: str = DEFAULT_LOCATION,
         maximum_bytes_billed: int = DEFAULT_MAXIMUM_BYTES_BILLED,
+        storage_safety_bytes: int = DEFAULT_STORAGE_SAFETY_BYTES,
     ) -> None:
         if not PROJECT_ID_PATTERN.fullmatch(project_id):
             raise ValueError("project_id is not a valid Google Cloud project ID")
         if maximum_bytes_billed <= 0:
             raise ValueError("maximum_bytes_billed must be positive")
+        if storage_safety_bytes <= 0:
+            raise ValueError("storage_safety_bytes must be positive")
         self.project_id = project_id
         self.location = location
         self.maximum_bytes_billed = maximum_bytes_billed
+        self.storage_safety_bytes = storage_safety_bytes
         self.client = client or bigquery.Client(project=project_id, location=location)
 
     def inspect(self) -> ReadinessReport:
@@ -100,7 +109,22 @@ class BigQueryReadinessInspector:
         metrics: dict[str, Any] = {}
         if all(check.status == "PASS" for check in checks):
             try:
-                metrics = self._load_operational_metrics()
+                storage_metrics = self._load_storage_metrics()
+            except (GoogleAPICallError, RuntimeError, ValueError) as exc:
+                checks.append(
+                    ReadinessCheck(
+                        "cost:storage",
+                        "FAIL",
+                        f"Gagal membaca storage guard: {type(exc).__name__}",
+                    )
+                )
+            else:
+                metrics.update(storage_metrics)
+                checks.append(self._storage_check(storage_metrics))
+
+        if all(check.status == "PASS" for check in checks):
+            try:
+                operational_metrics = self._load_operational_metrics()
             except (GoogleAPICallError, RuntimeError) as exc:
                 checks.append(
                     ReadinessCheck(
@@ -110,7 +134,8 @@ class BigQueryReadinessInspector:
                     )
                 )
             else:
-                checks.extend(self._operational_checks(metrics))
+                metrics.update(operational_metrics)
+                checks.extend(self._operational_checks(operational_metrics))
 
         is_ready = bool(checks) and all(check.status == "PASS" for check in checks)
         status = "READY" if is_ready else "BLOCKED"
@@ -179,6 +204,44 @@ class BigQueryReadinessInspector:
                     )
                 )
         return checks
+
+    def _load_storage_metrics(self) -> dict[str, Any]:
+        datasets = {
+            dataset: self.client.get_dataset(f"{self.project_id}.{dataset}")
+            for dataset in REQUIRED_DATASETS
+        }
+        config = bigquery.QueryJobConfig(
+            maximum_bytes_billed=self.maximum_bytes_billed,
+        )
+        job = self.client.query(
+            storage_sql(self.project_id, REQUIRED_DATASETS),
+            job_config=config,
+            location=self.location,
+        )
+        rows = [dict(row.items()) for row in job.result()]
+        estimate = estimate_storage(
+            datasets,
+            rows,
+            safety_bytes=self.storage_safety_bytes,
+        )
+        return {
+            "storage_billable_bytes": estimate.billable_bytes,
+            "storage_safety_bytes": estimate.safety_bytes,
+            "storage_free_tier_bytes": estimate.free_tier_bytes,
+            "storage_dataset_bytes": estimate.dataset_bytes,
+            "storage_billing_models": estimate.billing_models,
+        }
+
+    @staticmethod
+    def _storage_check(metrics: dict[str, Any]) -> ReadinessCheck:
+        billable = int(metrics["storage_billable_bytes"])
+        safety = int(metrics["storage_safety_bytes"])
+        status = "PASS" if billable <= safety else "FAIL"
+        return ReadinessCheck(
+            "cost:storage",
+            status,
+            f"{billable} byte terukur dari batas aman {safety} byte",
+        )
 
     def _load_operational_metrics(self) -> dict[str, Any]:
         config = bigquery.QueryJobConfig(
