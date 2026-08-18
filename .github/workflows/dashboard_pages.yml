@@ -75,7 +75,7 @@ jobs:
       - name: Export curated BigQuery snapshot
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.refresh_from_bigquery }}
         run: |
-          python -m pip install -e .
+          python -m pip install -c constraints/ci.txt -e .
           python scripts/export_dashboard_snapshot.py \
             --project-id "$GCP_PROJECT_ID" \
             --location "$BIGQUERY_LOCATION" \
