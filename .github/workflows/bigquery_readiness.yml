@@ -58,6 +58,7 @@ jobs:
 
       - name: Check BigQuery production readiness
         run: |
+          set -euo pipefail
           python -m panganlens.readiness_cli \
             --project-id "$GCP_PROJECT_ID" \
             --location "$BIGQUERY_LOCATION" \
