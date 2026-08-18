@@ -2,6 +2,7 @@ from pathlib import Path
 
 WORKFLOW = Path(".github/workflows/gcp_auth_smoke.yml")
 SETUP_DOC = Path("docs/gcp_wif_setup.md")
+AUTH_PIN = "google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093"
 
 
 def test_gcp_auth_workflow_is_manual_direct_wif_and_keyless():
@@ -11,7 +12,7 @@ def test_gcp_auth_workflow_is_manual_direct_wif_and_keyless():
     assert "schedule:" not in text
     assert "github.ref == 'refs/heads/main'" in text
     assert "id-token: write" in text
-    assert "google-github-actions/auth@v3" in text
+    assert AUTH_PIN in text
     assert "workload_identity_provider:" in text
     assert "service_account:" not in text
     assert "credentials_json" not in text
