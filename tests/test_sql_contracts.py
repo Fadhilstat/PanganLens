@@ -18,12 +18,13 @@ def test_looker_price_fields_remain_numeric_for_bi_formatting():
     assert "FORMAT(" not in sql
 
 
-def test_pre_staging_gate_verifies_raw_payload_hash():
+def test_pre_staging_gate_verifies_raw_payload_hash_and_conflicts():
     sql = (ROOT / "sql" / "005_pre_staging_checks.sql").read_text(encoding="utf-8")
 
     assert "SHA256(payload_text)" in sql
     assert "staging_unmapped_rows_zero" in sql
-    assert "staging_business_keys_unique" in sql
+    assert "staging_business_key_conflicts_zero" in sql
+    assert "staging_business_keys_unique" not in sql
 
 
 def test_staging_rows_keep_mapping_audit_evidence():

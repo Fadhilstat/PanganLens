@@ -23,7 +23,7 @@ class FakeClient:
 
     def query(self, query, job_config=None, location=None):
         self.calls.append((query, job_config, location))
-        if len(self.calls) == 1:
+        if len(self.calls) == 2:
             return FakeJob(self.pre_rows)
         return FakeJob()
 
@@ -39,6 +39,10 @@ def _sql_dir(tmp_path: Path) -> Path:
     )
     (tmp_path / "011_post_promotion_assertions.sql").write_text(
         "ASSERT TRUE AS 'post check';",
+        encoding="utf-8",
+    )
+    (tmp_path / "012_audit_cross_capture_duplicates.sql").write_text(
+        "INSERT INTO audit_log SELECT @run_id;",
         encoding="utf-8",
     )
     return tmp_path
@@ -65,6 +69,20 @@ def test_ineligible_ingestion_never_queries_bigquery(tmp_path):
     assert client.calls == []
 
 
+def test_cross_capture_audit_runs_before_prechecks(tmp_path):
+    client = FakeClient(_pass_rows())
+    runner = BigQueryPromotionRunner(
+        "panganlens-demo",
+        client=client,
+        sql_dir=_sql_dir(tmp_path),
+    )
+
+    runner.promote("run-1", ingestion_eligible=True)
+
+    assert "INSERT INTO audit_log" in client.calls[0][0]
+    assert "SELECT @run_id AS run_id" in client.calls[1][0]
+
+
 def test_empty_precheck_result_blocks_transaction(tmp_path):
     client = FakeClient([])
     runner = BigQueryPromotionRunner(
@@ -76,7 +94,7 @@ def test_empty_precheck_result_blocks_transaction(tmp_path):
     with pytest.raises(PromotionBlockedError, match="returned no results"):
         runner.promote("run-1", ingestion_eligible=True)
 
-    assert len(client.calls) == 1
+    assert len(client.calls) == 2
 
 
 def test_nonzero_failure_count_blocks_even_when_status_says_pass(tmp_path):
@@ -91,7 +109,7 @@ def test_nonzero_failure_count_blocks_even_when_status_says_pass(tmp_path):
     with pytest.raises(PromotionBlockedError, match="duplicate_gate"):
         runner.promote("run-1", ingestion_eligible=True)
 
-    assert len(client.calls) == 1
+    assert len(client.calls) == 2
 
 
 def test_failed_precheck_blocks_transaction(tmp_path):
@@ -106,7 +124,7 @@ def test_failed_precheck_blocks_transaction(tmp_path):
     with pytest.raises(PromotionBlockedError, match="duplicate_gate"):
         runner.promote("run-1", ingestion_eligible=True)
 
-    assert len(client.calls) == 1
+    assert len(client.calls) == 2
 
 
 def test_promotion_and_post_assertions_share_one_transaction(tmp_path):
@@ -121,8 +139,8 @@ def test_promotion_and_post_assertions_share_one_transaction(tmp_path):
 
     assert result.promoted is True
     assert result.publish_eligible is True
-    assert len(client.calls) == 2
-    transaction_sql = client.calls[1][0]
+    assert len(client.calls) == 3
+    transaction_sql = client.calls[2][0]
     assert transaction_sql.startswith("BEGIN TRANSACTION;")
     assert "MERGE target" in transaction_sql
     assert "ASSERT TRUE" in transaction_sql
@@ -130,7 +148,7 @@ def test_promotion_and_post_assertions_share_one_transaction(tmp_path):
     assert transaction_sql.index("MERGE target") < transaction_sql.index("ASSERT TRUE")
 
 
-def test_run_id_is_parameterized_for_checks_and_transaction(tmp_path):
+def test_run_id_is_parameterized_for_audit_checks_and_transaction(tmp_path):
     client = FakeClient(_pass_rows())
     runner = BigQueryPromotionRunner(
         "panganlens-demo",
@@ -156,6 +174,26 @@ def test_promotion_scope_matches_lowercase_staging_contract():
     assert "scope = 'NATIONAL'" not in sql
     assert "scope = 'REGION'" not in sql
     assert "scope = 'MARKET'" not in sql
+
+
+def test_cross_capture_audit_is_idempotent_and_logs_true_conflicts():
+    sql = Path("sql/012_audit_cross_capture_duplicates.sql").read_text(encoding="utf-8")
+
+    assert "panganlens_ops.duplicate_log" in sql
+    assert "panganlens_ops.conflict_log" in sql
+    assert "COUNT(DISTINCT capture_id) > 1" in sql
+    assert "COUNT(DISTINCT record_hash) > 1" in sql
+    assert "resolution_status" in sql
+    assert "'OPEN'" in sql
+    assert "NOT EXISTS" in sql
+
+
+def test_precheck_allows_exact_duplicates_but_blocks_conflicting_hashes():
+    sql = Path("sql/005_pre_staging_checks.sql").read_text(encoding="utf-8")
+
+    assert "staging_business_key_conflicts_zero" in sql
+    assert "HAVING COUNT(DISTINCT record_hash) > 1" in sql
+    assert "staging_business_keys_unique" not in sql
 
 
 def test_post_assertion_contract_contains_duplicate_numeric_and_reconciliation_gates():

@@ -32,7 +32,7 @@ class PromotionBlockedError(RuntimeError):
 
 
 class BigQueryPromotionRunner:
-    """Execute pre-checks and atomic promotion with post-promotion assertions."""
+    """Audit staging, run quality gates, and promote one run atomically."""
 
     def __init__(
         self,
@@ -52,6 +52,7 @@ class BigQueryPromotionRunner:
         if not ingestion_eligible:
             raise PromotionBlockedError("ingestion summary is not promotion eligible")
 
+        self._audit_cross_capture_rows(run_id)
         pre_checks = self._run_pre_checks(run_id)
         if not pre_checks:
             raise PromotionBlockedError("pre-promotion checks returned no results")
@@ -74,16 +75,7 @@ class BigQueryPromotionRunner:
             + post_assertions
             + "\nCOMMIT TRANSACTION;\n"
         )
-        job_config = bigquery.QueryJobConfig(
-            query_parameters=[
-                bigquery.ScalarQueryParameter("run_id", "STRING", run_id),
-            ]
-        )
-        self.client.query(
-            transactional_sql,
-            job_config=job_config,
-            location=self.location,
-        ).result()
+        self._execute(transactional_sql, run_id)
         return PromotionResult(
             run_id=run_id,
             pre_checks=pre_checks,
@@ -91,18 +83,13 @@ class BigQueryPromotionRunner:
             publish_eligible=True,
         )
 
+    def _audit_cross_capture_rows(self, run_id: str) -> None:
+        query = self._read_sql("012_audit_cross_capture_duplicates.sql")
+        self._execute(query, run_id)
+
     def _run_pre_checks(self, run_id: str) -> tuple[QualityCheck, ...]:
         query = self._read_sql("005_pre_staging_checks.sql")
-        job_config = bigquery.QueryJobConfig(
-            query_parameters=[
-                bigquery.ScalarQueryParameter("run_id", "STRING", run_id),
-            ]
-        )
-        rows = self.client.query(
-            query,
-            job_config=job_config,
-            location=self.location,
-        ).result()
+        rows = self._execute(query, run_id)
         return tuple(
             QualityCheck(
                 check_name=str(row["check_name"]),
@@ -111,6 +98,18 @@ class BigQueryPromotionRunner:
             )
             for row in rows
         )
+
+    def _execute(self, query: str, run_id: str):
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("run_id", "STRING", run_id),
+            ]
+        )
+        return self.client.query(
+            query,
+            job_config=job_config,
+            location=self.location,
+        ).result()
 
     def _read_sql(self, filename: str) -> str:
         path = self.sql_dir / filename

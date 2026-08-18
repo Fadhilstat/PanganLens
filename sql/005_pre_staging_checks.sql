@@ -86,7 +86,7 @@ WITH checks AS (
   UNION ALL
 
   SELECT
-    'staging_business_keys_unique',
+    'staging_business_key_conflicts_zero',
     COUNT(*)
   FROM (
     SELECT business_key_hash
@@ -95,7 +95,7 @@ WITH checks AS (
       AND mapping_status = 'MAPPED'
       AND validation_status = 'VALID'
     GROUP BY business_key_hash
-    HAVING COUNT(*) > 1
+    HAVING COUNT(DISTINCT record_hash) > 1
   )
 
   UNION ALL
