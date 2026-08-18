@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="PanganLens Indonesia, dashboard publik untuk memantau harga pangan dan perbedaan harga antarprovinsi.">
+  <title>PanganLens Indonesia</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div>
+      <a class="brand" href="#ringkasan">PanganLens Indonesia</a>
+      <p class="brand-note">Harga pangan, dibuat lebih mudah dibaca.</p>
+    </div>
+    <nav aria-label="Navigasi utama">
+      <a href="#ringkasan">Ringkasan</a>
+      <a href="#komoditas">Komoditas</a>
+      <a href="#wilayah">Wilayah</a>
+      <a href="#metodologi">Data & metodologi</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero" id="ringkasan">
+      <div>
+        <p class="eyebrow">MONITOR HARGA PANGAN</p>
+        <h1>Melihat perubahan harga tanpa tenggelam dalam angka.</h1>
+        <p class="hero-copy">PanganLens merangkum harga pangan harian, perubahan terbaru, dan perbedaan harga antarprovinsi dari data yang telah melewati pemeriksaan kualitas.</p>
+      </div>
+      <aside class="freshness-card" aria-live="polite">
+        <span class="status-dot" id="status-dot"></span>
+        <div>
+          <p class="card-label">Status data</p>
+          <strong id="freshness-label">Memuat data</strong>
+          <p id="observation-date">Tanggal data belum tersedia</p>
+        </div>
+      </aside>
+    </section>
+
+    <section class="notice hidden" id="data-notice" role="status"></section>
+
+    <section class="kpi-grid" aria-label="Indikator utama">
+      <article class="kpi-card"><p>Komoditas terpantau</p><strong id="commodity-count">0</strong><span>pada snapshot terbaru</span></article>
+      <article class="kpi-card"><p>Harga naik terbesar</p><strong id="top-rise">-</strong><span id="top-rise-detail">Belum tersedia</span></article>
+      <article class="kpi-card"><p>Harga turun terbesar</p><strong id="top-fall">-</strong><span id="top-fall-detail">Belum tersedia</span></article>
+      <article class="kpi-card"><p>Provinsi tercakup</p><strong id="province-count">0</strong><span>pada snapshot terbaru</span></article>
+    </section>
+
+    <section class="panel" id="komoditas">
+      <div class="section-heading">
+        <div><p class="eyebrow">KOMODITAS</p><h2>Harga nasional terbaru</h2></div>
+        <label>Komoditas
+          <select id="commodity-select" aria-label="Pilih komoditas"></select>
+        </label>
+      </div>
+      <div class="commodity-detail">
+        <div>
+          <p class="card-label">Harga terakhir</p>
+          <strong class="large-number" id="latest-price">-</strong>
+          <p id="latest-price-meta">Pilih komoditas untuk melihat harga.</p>
+        </div>
+        <div>
+          <p class="card-label">Perubahan harian</p>
+          <strong class="large-number" id="daily-change">-</strong>
+          <p id="daily-change-note">Dibanding observasi sebelumnya yang tersedia.</p>
+        </div>
+      </div>
+      <div class="trend-wrap">
+        <svg id="trend-chart" viewBox="0 0 800 260" role="img" aria-label="Grafik perubahan harga nasional"></svg>
+        <p class="empty-copy" id="trend-empty">Grafik akan muncul setelah snapshot produksi tersedia.</p>
+      </div>
+    </section>
+
+    <section class="panel" id="wilayah">
+      <div class="section-heading">
+        <div><p class="eyebrow">WILAYAH</p><h2>Perbedaan harga antarprovinsi</h2></div>
+        <p class="section-note">Menampilkan provinsi dengan selisih terbesar dari rata-rata provinsi untuk komoditas yang dipilih.</p>
+      </div>
+      <div class="region-list" id="region-list"></div>
+      <p class="empty-copy" id="region-empty">Data wilayah akan muncul setelah snapshot produksi tersedia.</p>
+    </section>
+
+    <section class="methodology" id="metodologi">
+      <div><p class="eyebrow">DATA & METODOLOGI</p><h2>Angka yang tampil harus bisa ditelusuri.</h2></div>
+      <div class="method-grid">
+        <article><h3>Sumber</h3><p>PIHPS Bank Indonesia melalui interface publik yang dipantau health check-nya. PanganLens tidak menyebut interface website tersebut sebagai API resmi.</p></article>
+        <article><h3>Kualitas</h3><p>Dashboard hanya membaca data curated yang lolos pemeriksaan duplikasi, mapping, referential integrity, nilai harga, provenance, dan publish state.</p></article>
+        <article><h3>Ketepatan angka</h3><p>Harga disimpan sebagai nilai numerik di warehouse. Pemformatan rupiah dan persen hanya dilakukan saat ditampilkan.</p></article>
+        <article><h3>Freshness</h3><p>Tanggal observasi selalu ditampilkan. Jika pipeline bermasalah, publikasi baru ditahan dan dashboard mempertahankan snapshot terakhir yang valid.</p></article>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>PanganLens Indonesia. Dashboard informasi publik, bukan alat penetapan harga atau rekomendasi transaksi.</p>
+  </footer>
+  <script src="app.js" defer></script>
+</body>
+</html>
