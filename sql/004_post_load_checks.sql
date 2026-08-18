@@ -42,6 +42,24 @@ WITH checks AS (
   UNION ALL
 
   SELECT
+    'national_prices_have_known_commodities',
+    COUNTIF(c.commodity_id IS NULL)
+  FROM panganlens_core.food_price_national AS f
+  LEFT JOIN panganlens_core.commodity AS c
+    ON f.commodity_id = c.commodity_id
+
+  UNION ALL
+
+  SELECT
+    'national_prices_have_known_channels',
+    COUNTIF(c.channel_id IS NULL)
+  FROM panganlens_core.food_price_national AS f
+  LEFT JOIN panganlens_core.market_channel AS c
+    ON f.channel_id = c.channel_id
+
+  UNION ALL
+
+  SELECT
     'region_prices_have_known_commodities',
     COUNTIF(c.commodity_id IS NULL)
   FROM panganlens_core.food_price_region AS f
@@ -51,11 +69,29 @@ WITH checks AS (
   UNION ALL
 
   SELECT
+    'region_prices_have_known_channels',
+    COUNTIF(c.channel_id IS NULL)
+  FROM panganlens_core.food_price_region AS f
+  LEFT JOIN panganlens_core.market_channel AS c
+    ON f.channel_id = c.channel_id
+
+  UNION ALL
+
+  SELECT
     'region_prices_have_known_regions',
     COUNTIF(r.region_id IS NULL)
   FROM panganlens_core.food_price_region AS f
   LEFT JOIN panganlens_core.region AS r
     ON f.region_id = r.region_id
+
+  UNION ALL
+
+  SELECT
+    'market_prices_have_known_commodities',
+    COUNTIF(c.commodity_id IS NULL)
+  FROM panganlens_core.food_price_market AS f
+  LEFT JOIN panganlens_core.commodity AS c
+    ON f.commodity_id = c.commodity_id
 
   UNION ALL
 
