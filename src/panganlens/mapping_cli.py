@@ -39,10 +39,21 @@ def build_parser() -> argparse.ArgumentParser:
     )
     approve.add_argument("--candidate-fingerprint", required=True)
     approve.add_argument("--canonical-id", required=True)
-    approve.add_argument("--reviewed-by", required=True)
-    approve.add_argument("--reviewed-at", required=True, type=datetime.fromisoformat)
-    approve.add_argument("--review-note", required=True)
+    _add_review_metadata(approve)
+
+    reject = subparsers.add_parser(
+        "reject",
+        help="Reject one mapping candidate after an explicit human review.",
+    )
+    reject.add_argument("--candidate-fingerprint", required=True)
+    _add_review_metadata(reject)
     return parser
+
+
+def _add_review_metadata(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--reviewed-by", required=True)
+    parser.add_argument("--reviewed-at", required=True, type=datetime.fromisoformat)
+    parser.add_argument("--review-note", required=True)
 
 
 def run(args: argparse.Namespace) -> dict[str, object] | list[dict[str, object]]:
@@ -64,6 +75,13 @@ def run(args: argparse.Namespace) -> dict[str, object] | list[dict[str, object]]
         return operator.approve(
             args.candidate_fingerprint,
             args.canonical_id,
+            args.reviewed_by,
+            args.reviewed_at,
+            args.review_note,
+        )
+    if args.command == "reject":
+        return operator.reject(
+            args.candidate_fingerprint,
             args.reviewed_by,
             args.reviewed_at,
             args.review_note,
