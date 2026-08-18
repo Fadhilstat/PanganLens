@@ -224,7 +224,9 @@ def _activation_sql_text() -> str:
         resource = files("panganlens.sql").joinpath(ACTIVATION_SQL_RESOURCE)
         return resource.read_text(encoding="utf-8")
     except (FileNotFoundError, ModuleNotFoundError) as exc:
-        raise MappingOperatorError("mapping activation SQL package resource is unavailable") from exc
+        raise MappingOperatorError(
+            "mapping activation SQL package resource is unavailable"
+        ) from exc
 
 
 def _request_date(params: dict[str, object], key: str) -> date:
