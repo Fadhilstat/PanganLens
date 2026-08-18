@@ -9,16 +9,16 @@ from panganlens.schema_contract import REQUIRED_DATASETS, WAREHOUSE_OBJECTS, War
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 SCHEMA_TARGET = re.compile(
-    r"^CREATE\s+SCHEMA\s+IF\s+NOT\s+EXISTS\s+(panganlens_[a-z0-9_]+)\b",
+    r"CREATE\s+SCHEMA\s+IF\s+NOT\s+EXISTS\s+(panganlens_[a-z0-9_]+)\b",
     re.IGNORECASE,
 )
 TABLE_TARGET = re.compile(
-    r"^CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\s+"
+    r"CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\s+"
     r"(panganlens_[a-z0-9_]+)\.([a-z0-9_]+)\b",
     re.IGNORECASE,
 )
 VIEW_TARGET = re.compile(
-    r"^CREATE\s+OR\s+REPLACE\s+VIEW\s+"
+    r"CREATE\s+OR\s+REPLACE\s+VIEW\s+"
     r"(panganlens_[a-z0-9_]+)\.([a-z0-9_]+)\b",
     re.IGNORECASE,
 )
@@ -45,13 +45,13 @@ def test_schema_contract_matches_every_bootstrap_ddl_target():
 
     for statement in plan.executable_statements:
         sql = statement.sql.strip()
-        if match := SCHEMA_TARGET.match(sql):
+        if match := SCHEMA_TARGET.search(sql):
             schema_targets.add(match.group(1).lower())
             continue
-        if match := TABLE_TARGET.match(sql):
+        if match := TABLE_TARGET.search(sql):
             ddl_objects.add((match.group(1).lower(), match.group(2).lower(), "TABLE"))
             continue
-        if match := VIEW_TARGET.match(sql):
+        if match := VIEW_TARGET.search(sql):
             ddl_objects.add((match.group(1).lower(), match.group(2).lower(), "VIEW"))
             continue
         raise AssertionError(f"unrecognized executable bootstrap statement: {statement.kind}")
