@@ -16,11 +16,12 @@ from panganlens.cost_guard import (
     storage_sql,
 )
 from panganlens.dashboard_snapshot import dashboard_snapshot_queries
-from panganlens.schema_contract import REQUIRED_DATASETS, REQUIRED_OBJECTS, WAREHOUSE_OBJECTS
+from panganlens.schema_contract import REQUIRED_DATASETS, WAREHOUSE_OBJECTS
 from panganlens.warehouse.loader import PROJECT_ID_PATTERN
 
 DEFAULT_LOCATION = "asia-southeast2"
 DEFAULT_MAXIMUM_BYTES_BILLED = 50_000_000
+REQUIRED_OBJECTS = tuple((obj.dataset, obj.name) for obj in WAREHOUSE_OBJECTS)
 
 
 @dataclass(frozen=True, slots=True)
