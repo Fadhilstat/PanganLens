@@ -6,7 +6,7 @@ import hashlib
 import json
 from dataclasses import asdict
 from datetime import UTC, date, datetime
-from pathlib import Path
+from importlib.resources import files
 from typing import Any
 
 from google.cloud import bigquery
@@ -20,7 +20,7 @@ from panganlens.ingestion.pihps_interface import extract_rows
 from panganlens.ingestion.pihps_parser import parse_grid_rows
 from panganlens.warehouse.loader import PROJECT_ID_PATTERN, SHA256_PATTERN
 
-ACTIVATION_SQL = Path(__file__).resolve().parents[3] / "sql/016_activate_reviewed_mapping.sql"
+ACTIVATION_SQL_RESOURCE = "016_activate_reviewed_mapping.sql"
 
 
 class MappingOperatorError(RuntimeError):
@@ -152,10 +152,8 @@ LIMIT @limit
             raise ValueError("reviewed_at must not be in the future")
         if not review_note.strip():
             raise ValueError("review_note must explain the human mapping decision")
-        if not ACTIVATION_SQL.is_file():
-            raise MappingOperatorError("mapping activation SQL file is unavailable")
 
-        sql = ACTIVATION_SQL.read_text(encoding="utf-8")
+        sql = _activation_sql_text()
         config = bigquery.QueryJobConfig(
             query_parameters=[
                 bigquery.ScalarQueryParameter(
@@ -219,6 +217,14 @@ WHERE raw.capture_id = @capture_id
             params = json.loads(params)
         row["request_parameters"] = dict(params)
         return row
+
+
+def _activation_sql_text() -> str:
+    try:
+        resource = files("panganlens.sql").joinpath(ACTIVATION_SQL_RESOURCE)
+        return resource.read_text(encoding="utf-8")
+    except (FileNotFoundError, ModuleNotFoundError) as exc:
+        raise MappingOperatorError("mapping activation SQL package resource is unavailable") from exc
 
 
 def _request_date(params: dict[str, object], key: str) -> date:
