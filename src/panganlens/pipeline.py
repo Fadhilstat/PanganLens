@@ -109,7 +109,7 @@ def _outcome(
         rows_received=rows_received,
         rows_clean=rows_clean,
         rows_duplicate=summary.exact_duplicates,
-        rows_conflict=0,
+        rows_conflict=summary.conflict_rows,
         rows_quarantined=summary.quarantined_rows,
         error_message=error_message,
     )
