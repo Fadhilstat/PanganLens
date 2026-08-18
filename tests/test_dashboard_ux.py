@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 WEBSITE = Path(__file__).resolve().parents[1] / "website"
 
 
