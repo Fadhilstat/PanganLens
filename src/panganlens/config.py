@@ -5,13 +5,15 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
+from panganlens.schema_contract import WAREHOUSE_LOCATION
+
 
 @dataclass(frozen=True, slots=True)
 class Settings:
     """Settings loaded from environment variables."""
 
     bigquery_project: str
-    bigquery_location: str = "asia-southeast2"
+    bigquery_location: str = WAREHOUSE_LOCATION
     request_timeout_seconds: int = 30
     source_base_url: str = "https://www.bi.go.id/hargapangan"
 
@@ -29,7 +31,7 @@ class Settings:
         return cls(
             bigquery_project=project,
             bigquery_location=os.getenv(
-                "PANGANLENS_BQ_LOCATION", "asia-southeast2"
+                "PANGANLENS_BQ_LOCATION", WAREHOUSE_LOCATION
             ).strip(),
             request_timeout_seconds=timeout,
             source_base_url=os.getenv(
