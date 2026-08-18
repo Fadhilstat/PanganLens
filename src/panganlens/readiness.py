@@ -9,10 +9,13 @@ from google.api_core.exceptions import GoogleAPICallError, NotFound
 from google.cloud import bigquery
 
 from panganlens.cost_guard import (
+    DEFAULT_QUERY_SAFETY_BYTES,
     DEFAULT_STORAGE_SAFETY_BYTES,
+    estimate_query_bytes,
     estimate_storage,
     storage_sql,
 )
+from panganlens.dashboard_snapshot import dashboard_snapshot_queries
 from panganlens.warehouse.loader import PROJECT_ID_PATTERN
 
 DEFAULT_LOCATION = "asia-southeast2"
@@ -88,6 +91,7 @@ class BigQueryReadinessInspector:
         location: str = DEFAULT_LOCATION,
         maximum_bytes_billed: int = DEFAULT_MAXIMUM_BYTES_BILLED,
         storage_safety_bytes: int = DEFAULT_STORAGE_SAFETY_BYTES,
+        query_safety_bytes: int = DEFAULT_QUERY_SAFETY_BYTES,
     ) -> None:
         if not PROJECT_ID_PATTERN.fullmatch(project_id):
             raise ValueError("project_id is not a valid Google Cloud project ID")
@@ -95,10 +99,13 @@ class BigQueryReadinessInspector:
             raise ValueError("maximum_bytes_billed must be positive")
         if storage_safety_bytes <= 0:
             raise ValueError("storage_safety_bytes must be positive")
+        if query_safety_bytes <= 0:
+            raise ValueError("query_safety_bytes must be positive")
         self.project_id = project_id
         self.location = location
         self.maximum_bytes_billed = maximum_bytes_billed
         self.storage_safety_bytes = storage_safety_bytes
+        self.query_safety_bytes = query_safety_bytes
         self.client = client or bigquery.Client(project=project_id, location=location)
 
     def inspect(self) -> ReadinessReport:
@@ -121,6 +128,21 @@ class BigQueryReadinessInspector:
             else:
                 metrics.update(storage_metrics)
                 checks.append(self._storage_check(storage_metrics))
+
+        if all(check.status == "PASS" for check in checks):
+            try:
+                query_metrics = self._load_dashboard_query_metrics()
+            except (GoogleAPICallError, RuntimeError, ValueError) as exc:
+                checks.append(
+                    ReadinessCheck(
+                        "cost:dashboard_queries",
+                        "FAIL",
+                        f"Gagal menjalankan dry-run query guard: {type(exc).__name__}",
+                    )
+                )
+            else:
+                metrics.update(query_metrics)
+                checks.append(self._query_budget_check(query_metrics))
 
         if all(check.status == "PASS" for check in checks):
             try:
@@ -242,6 +264,36 @@ class BigQueryReadinessInspector:
             status,
             f"{billable} byte terukur dari batas aman {safety} byte",
         )
+
+    def _load_dashboard_query_metrics(self) -> dict[str, Any]:
+        estimate = estimate_query_bytes(
+            self.client,
+            dashboard_snapshot_queries(self.project_id),
+            location=self.location,
+            per_query_safety_bytes=self.query_safety_bytes,
+        )
+        return {
+            "dashboard_query_total_bytes_processed": estimate.total_bytes_processed,
+            "dashboard_query_safety_bytes": estimate.per_query_safety_bytes,
+            "dashboard_query_total_safety_bytes": estimate.total_safety_bytes,
+            "dashboard_query_bytes": estimate.query_bytes,
+        }
+
+    @staticmethod
+    def _query_budget_check(metrics: dict[str, Any]) -> ReadinessCheck:
+        per_query = {
+            str(name): int(value)
+            for name, value in dict(metrics["dashboard_query_bytes"]).items()
+        }
+        safety = int(metrics["dashboard_query_safety_bytes"])
+        over_budget = {name: value for name, value in per_query.items() if value > safety}
+        status = "PASS" if not over_budget else "FAIL"
+        detail = (
+            f"{len(per_query)} query dry-run di bawah {safety} byte per query"
+            if not over_budget
+            else f"{len(over_budget)} query dry-run melewati batas {safety} byte"
+        )
+        return ReadinessCheck("cost:dashboard_queries", status, detail)
 
     def _load_operational_metrics(self) -> dict[str, Any]:
         config = bigquery.QueryJobConfig(
