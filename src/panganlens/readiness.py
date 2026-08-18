@@ -16,48 +16,11 @@ from panganlens.cost_guard import (
     storage_sql,
 )
 from panganlens.dashboard_snapshot import dashboard_snapshot_queries
+from panganlens.schema_contract import REQUIRED_DATASETS, REQUIRED_OBJECTS, WAREHOUSE_OBJECTS
 from panganlens.warehouse.loader import PROJECT_ID_PATTERN
 
 DEFAULT_LOCATION = "asia-southeast2"
 DEFAULT_MAXIMUM_BYTES_BILLED = 50_000_000
-
-REQUIRED_DATASETS = (
-    "panganlens_raw",
-    "panganlens_staging",
-    "panganlens_core",
-    "panganlens_mart",
-    "panganlens_ops",
-)
-
-REQUIRED_OBJECTS = (
-    ("panganlens_raw", "raw_food_price_capture"),
-    ("panganlens_staging", "normalized_price_candidate"),
-    ("panganlens_core", "commodity_category"),
-    ("panganlens_core", "unit"),
-    ("panganlens_core", "market_channel"),
-    ("panganlens_core", "commodity"),
-    ("panganlens_core", "region"),
-    ("panganlens_core", "market"),
-    ("panganlens_core", "food_price_national"),
-    ("panganlens_core", "food_price_region"),
-    ("panganlens_core", "food_price_market"),
-    ("panganlens_ops", "pipeline_run"),
-    ("panganlens_ops", "source_capture"),
-    ("panganlens_ops", "publish_state"),
-    ("panganlens_ops", "data_quality_result"),
-    ("panganlens_ops", "duplicate_log"),
-    ("panganlens_ops", "conflict_log"),
-    ("panganlens_ops", "revision_history"),
-    ("panganlens_ops", "source_entity_mapping"),
-    ("panganlens_ops", "vw_active_source_entity_mapping"),
-    ("panganlens_ops", "source_mapping_review_candidate"),
-    ("panganlens_ops", "vw_mapping_review_queue"),
-    ("panganlens_mart", "vw_looker_national_price_daily"),
-    ("panganlens_mart", "vw_looker_region_price_daily"),
-    ("panganlens_mart", "vw_looker_province_map"),
-    ("panganlens_mart", "vw_looker_publish_state"),
-    ("panganlens_mart", "vw_looker_pipeline_health"),
-)
 
 
 @dataclass(frozen=True, slots=True)
@@ -197,32 +160,43 @@ class BigQueryReadinessInspector:
 
     def _check_objects(self) -> list[ReadinessCheck]:
         checks = []
-        for dataset, object_name in REQUIRED_OBJECTS:
-            resource = f"{self.project_id}.{dataset}.{object_name}"
+        for warehouse_object in WAREHOUSE_OBJECTS:
+            resource = (
+                f"{self.project_id}.{warehouse_object.dataset}.{warehouse_object.name}"
+            )
             try:
-                self.client.get_table(resource)
+                table = self.client.get_table(resource)
             except NotFound:
                 checks.append(
                     ReadinessCheck(
-                        f"object:{dataset}.{object_name}",
+                        f"object:{warehouse_object.qualified_name}",
                         "FAIL",
-                        "Tabel atau view belum tersedia",
+                        f"{warehouse_object.object_type} belum tersedia",
                     )
                 )
             except GoogleAPICallError as exc:
                 checks.append(
                     ReadinessCheck(
-                        f"object:{dataset}.{object_name}",
+                        f"object:{warehouse_object.qualified_name}",
                         "FAIL",
                         f"Gagal membaca metadata: {type(exc).__name__}",
                     )
                 )
             else:
+                actual_type = str(getattr(table, "table_type", "") or "").upper()
+                type_matches = actual_type == warehouse_object.object_type
                 checks.append(
                     ReadinessCheck(
-                        f"object:{dataset}.{object_name}",
-                        "PASS",
-                        "Tabel atau view tersedia",
+                        f"object:{warehouse_object.qualified_name}",
+                        "PASS" if type_matches else "FAIL",
+                        (
+                            f"{warehouse_object.object_type} tersedia"
+                            if type_matches
+                            else (
+                                f"Tipe object {actual_type or 'tidak diketahui'}; "
+                                f"diharapkan {warehouse_object.object_type}"
+                            )
+                        ),
                     )
                 )
         return checks
