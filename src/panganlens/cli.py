@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from uuid import uuid4
 
 from google.cloud import bigquery
@@ -66,7 +66,11 @@ def build_request(args: argparse.Namespace) -> GridRequest:
     )
 
 
-def build_context(args: argparse.Namespace, request: GridRequest, captured_at: datetime) -> IngestionContext:
+def build_context(
+    args: argparse.Namespace,
+    request: GridRequest,
+    captured_at: datetime,
+) -> IngestionContext:
     run_id = args.run_id or _generated_id("run", captured_at)
     capture_id = args.capture_id or _generated_id("capture", captured_at)
     return IngestionContext(
@@ -84,7 +88,7 @@ def build_context(args: argparse.Namespace, request: GridRequest, captured_at: d
 
 def run(args: argparse.Namespace) -> PipelineOutcome:
     request = build_request(args)
-    captured_at = datetime.now(timezone.utc)
+    captured_at = datetime.now(UTC)
     context = build_context(args, request, captured_at)
 
     client = bigquery.Client(project=args.project_id, location=args.location)
