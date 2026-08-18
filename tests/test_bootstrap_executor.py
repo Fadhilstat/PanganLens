@@ -98,7 +98,10 @@ def test_repository_plan_classifies_mixed_schema_files_without_executing_audits(
     audit_files = {statement.filename for statement in plan.audit_statements}
     assert "008_source_mapping_registry.sql" in audit_files
     assert "015_mapping_review_queue.sql" in audit_files
-    assert all(not statement.sql.lstrip().upper().startswith("SELECT") for statement in plan.executable_statements)
+    assert all(
+        not statement.sql.lstrip().upper().startswith("SELECT")
+        for statement in plan.executable_statements
+    )
 
 
 def test_repository_plan_excludes_operational_sql_files():
