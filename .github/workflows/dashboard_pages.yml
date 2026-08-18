@@ -32,19 +32,22 @@ jobs:
     env:
       GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
       GCP_WIF_PROVIDER: ${{ vars.GCP_WIF_PROVIDER }}
-      GCP_SERVICE_ACCOUNT: ${{ vars.GCP_SERVICE_ACCOUNT }}
       BIGQUERY_LOCATION: asia-southeast2
     steps:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
 
-      - name: Validate BigQuery refresh variables
+      - name: Validate BigQuery refresh context
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.refresh_from_bigquery }}
         run: |
           set -eu
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "BigQuery snapshot refresh is allowed only from main" >&2
+            exit 1
+          fi
           missing=""
-          for name in GCP_PROJECT_ID GCP_WIF_PROVIDER GCP_SERVICE_ACCOUNT; do
+          for name in GCP_PROJECT_ID GCP_WIF_PROVIDER; do
             eval "value=\${$name:-}"
             if [ -z "$value" ]; then
               missing="$missing $name"
@@ -55,13 +58,12 @@ jobs:
             exit 1
           fi
 
-      - name: Authenticate to Google Cloud
+      - name: Authenticate directly with Workload Identity Federation
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.refresh_from_bigquery }}
         uses: google-github-actions/auth@v3
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
           workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
-          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
           create_credentials_file: true
           export_environment_variables: true
 
