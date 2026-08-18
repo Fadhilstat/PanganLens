@@ -15,6 +15,16 @@ AS 'reviewed_by must not be empty';
 
 ASSERT (
   SELECT COUNT(*) = 1
+  FROM panganlens_ops.source_mapping_review_candidate AS candidate
+  JOIN panganlens_ops.source_capture AS capture
+    ON capture.capture_id = candidate.evidence_capture_id
+   AND capture.schema_fingerprint = candidate.source_schema_fingerprint
+  WHERE candidate.candidate_fingerprint = @candidate_fingerprint
+    AND candidate.review_status = 'REVIEW_REQUIRED'
+) AS 'mapping candidate source evidence is missing or inconsistent';
+
+ASSERT (
+  SELECT COUNT(*) = 1
   FROM (
     SELECT candidate.entity_type
     FROM panganlens_ops.source_mapping_review_candidate AS candidate
