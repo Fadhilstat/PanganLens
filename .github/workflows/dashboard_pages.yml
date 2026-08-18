@@ -1,0 +1,92 @@
+name: PanganLens website dashboard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "website/**"
+      - ".github/workflows/dashboard_pages.yml"
+  workflow_dispatch:
+    inputs:
+      refresh_from_bigquery:
+        description: "Refresh website snapshot from curated BigQuery views before deployment"
+        required: true
+        type: boolean
+        default: false
+
+concurrency:
+  group: panganlens-pages
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      GCP_WIF_PROVIDER: ${{ vars.GCP_WIF_PROVIDER }}
+      GCP_SERVICE_ACCOUNT: ${{ vars.GCP_SERVICE_ACCOUNT }}
+      BIGQUERY_LOCATION: asia-southeast2
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Validate BigQuery refresh variables
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.refresh_from_bigquery }}
+        run: |
+          set -eu
+          missing=""
+          for name in GCP_PROJECT_ID GCP_WIF_PROVIDER GCP_SERVICE_ACCOUNT; do
+            eval "value=\${$name:-}"
+            if [ -z "$value" ]; then
+              missing="$missing $name"
+            fi
+          done
+          if [ -n "$missing" ]; then
+            echo "Missing required repository variables:$missing" >&2
+            exit 1
+          fi
+
+      - name: Authenticate to Google Cloud
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.refresh_from_bigquery }}
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+          create_credentials_file: true
+          export_environment_variables: true
+
+      - uses: actions/setup-python@v6
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.refresh_from_bigquery }}
+        with:
+          python-version: "3.11"
+
+      - name: Export curated BigQuery snapshot
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.refresh_from_bigquery }}
+        run: |
+          python -m pip install -e .
+          python scripts/export_dashboard_snapshot.py \
+            --project-id "$GCP_PROJECT_ID" \
+            --location "$BIGQUERY_LOCATION" \
+            --output website/data/dashboard.json
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload website artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: website
+
+      - name: Deploy website
+        id: deployment
+        uses: actions/deploy-pages@v4
