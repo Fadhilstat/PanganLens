@@ -1,6 +1,14 @@
+from dataclasses import dataclass
+
 from google.api_core.exceptions import NotFound
 
+from panganlens.cost_guard import DEFAULT_STORAGE_SAFETY_BYTES
 from panganlens.readiness import REQUIRED_DATASETS, REQUIRED_OBJECTS, BigQueryReadinessInspector
+
+
+@dataclass
+class FakeDataset:
+    storage_billing_model: str | None = "LOGICAL"
 
 
 class FakeRow:
@@ -20,16 +28,33 @@ class FakeJob:
 
 
 class FakeClient:
-    def __init__(self, missing_datasets=None, missing_objects=None, metrics=None):
+    def __init__(
+        self,
+        missing_datasets=None,
+        missing_objects=None,
+        metrics=None,
+        storage_rows=None,
+        billing_models=None,
+    ):
         self.missing_datasets = set(missing_datasets or [])
         self.missing_objects = set(missing_objects or [])
         self.metrics = metrics or {}
+        self.storage_rows = storage_rows or [
+            {
+                "dataset_name": dataset,
+                "total_logical_bytes": 0,
+                "billable_physical_bytes": 0,
+            }
+            for dataset in REQUIRED_DATASETS
+        ]
+        self.billing_models = billing_models or {}
         self.queries = []
 
     def get_dataset(self, resource):
-        if resource.split(".")[-1] in self.missing_datasets:
+        dataset = resource.split(".")[-1]
+        if dataset in self.missing_datasets:
             raise NotFound("missing")
-        return object()
+        return FakeDataset(self.billing_models.get(dataset, "LOGICAL"))
 
     def get_table(self, resource):
         key = ".".join(resource.split(".")[-2:])
@@ -39,6 +64,8 @@ class FakeClient:
 
     def query(self, query, job_config=None, location=None):
         self.queries.append((query, job_config, location))
+        if "INFORMATION_SCHEMA.TABLE_STORAGE" in query:
+            return FakeJob([FakeRow(row) for row in self.storage_rows])
         return FakeJob([FakeRow(self.metrics)])
 
 
@@ -66,8 +93,12 @@ def test_readiness_reports_ready_when_all_gates_pass():
 
     assert report.status == "READY"
     assert all(check.status == "PASS" for check in report.checks)
-    assert len(client.queries) == 1
-    query, config, location = client.queries[0]
+    assert len(client.queries) == 2
+    storage_query, storage_config, storage_location = client.queries[0]
+    query, config, location = client.queries[1]
+    assert "INFORMATION_SCHEMA.TABLE_STORAGE" in storage_query
+    assert storage_config.maximum_bytes_billed == 50_000_000
+    assert storage_location == "asia-southeast2"
     assert "panganlens_ops.source_entity_mapping" in query
     assert "panganlens_ops.source_capture" in query
     assert "run.status = 'SUCCESS'" in query
@@ -75,6 +106,48 @@ def test_readiness_reports_ready_when_all_gates_pass():
     assert "vw_looker_province_map" in query
     assert config.maximum_bytes_billed == 50_000_000
     assert location == "asia-southeast2"
+    assert report.metrics["storage_billable_bytes"] == 0
+
+
+def test_readiness_blocks_when_storage_exceeds_safety_limit():
+    storage_rows = [
+        {
+            "dataset_name": "panganlens_raw",
+            "total_logical_bytes": DEFAULT_STORAGE_SAFETY_BYTES + 1,
+            "billable_physical_bytes": 0,
+        }
+    ]
+    client = FakeClient(metrics=ready_metrics(), storage_rows=storage_rows)
+    inspector = BigQueryReadinessInspector("panganlens-demo", client=client)
+
+    report = inspector.inspect()
+
+    assert report.status == "BLOCKED"
+    storage = next(check for check in report.checks if check.name == "cost:storage")
+    assert storage.status == "FAIL"
+    assert len(client.queries) == 1
+
+
+def test_readiness_uses_physical_bytes_for_physical_dataset():
+    storage_rows = [
+        {
+            "dataset_name": "panganlens_core",
+            "total_logical_bytes": DEFAULT_STORAGE_SAFETY_BYTES + 100,
+            "billable_physical_bytes": 123,
+        }
+    ]
+    client = FakeClient(
+        metrics=ready_metrics(),
+        storage_rows=storage_rows,
+        billing_models={"panganlens_core": "PHYSICAL"},
+    )
+    inspector = BigQueryReadinessInspector("panganlens-demo", client=client)
+
+    report = inspector.inspect()
+
+    assert report.status == "READY"
+    assert report.metrics["storage_dataset_bytes"]["panganlens_core"] == 123
+    assert report.metrics["storage_billing_models"]["panganlens_core"] == "PHYSICAL"
 
 
 def test_readiness_blocks_when_mapping_review_is_pending():
@@ -125,17 +198,19 @@ def test_readiness_blocks_when_dashboard_mart_is_empty():
     assert province.status == "FAIL"
 
 
-def test_readiness_stops_before_operational_query_when_metadata_is_missing():
-    inspector = BigQueryReadinessInspector(
-        "panganlens-demo",
-        client=FakeClient(missing_datasets={"panganlens_mart"}, metrics=ready_metrics()),
+def test_readiness_stops_before_queries_when_metadata_is_missing():
+    client = FakeClient(
+        missing_datasets={"panganlens_mart"},
+        metrics=ready_metrics(),
     )
+    inspector = BigQueryReadinessInspector("panganlens-demo", client=client)
 
     report = inspector.inspect()
 
     assert report.status == "BLOCKED"
     assert report.metrics == {}
     assert report.checks[0].name == f"dataset:{REQUIRED_DATASETS[0]}"
+    assert client.queries == []
 
 
 def test_readiness_checks_all_required_objects():
