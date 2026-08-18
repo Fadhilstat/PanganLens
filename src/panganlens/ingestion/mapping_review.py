@@ -18,7 +18,7 @@ from panganlens.ingestion.mapping_resolver import (
 )
 from panganlens.ingestion.orchestration import IngestionContext
 from panganlens.ingestion.pihps_parser import GridPricePoint
-from panganlens.warehouse.loader import PROJECT_ID_PATTERN
+from panganlens.warehouse.loader import PROJECT_ID_PATTERN, SHA256_PATTERN
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,10 +45,10 @@ class MappingReviewCandidate:
             raise ValueError("mapping_version must be positive")
         if not self.evidence_capture_id.strip():
             raise ValueError("evidence_capture_id must not be empty")
-        if len(self.source_schema_fingerprint) != 64:
-            raise ValueError("source_schema_fingerprint must be a SHA-256 hex digest")
-        if len(self.candidate_fingerprint) != 64:
-            raise ValueError("candidate_fingerprint must be a SHA-256 hex digest")
+        if not SHA256_PATTERN.fullmatch(self.source_schema_fingerprint):
+            raise ValueError("source_schema_fingerprint must be a lowercase SHA-256 digest")
+        if not SHA256_PATTERN.fullmatch(self.candidate_fingerprint):
+            raise ValueError("candidate_fingerprint must be a lowercase SHA-256 digest")
 
 
 def build_mapping_candidates(
