@@ -50,8 +50,8 @@ def test_exporter_reads_only_curated_dashboard_views():
     snapshot = exporter.export()
 
     assert snapshot.publish_state["active_observation_date"] == "2026-08-18"
-    assert snapshot.national_prices[0]["price_idr"] == 62650.0
-    assert snapshot.province_prices[0]["price_idr"] == 63000.0
+    assert snapshot.national_prices[0]["price_idr"] == "62650"
+    assert snapshot.province_prices[0]["price_idr"] == "63000"
     assert len(client.calls) == 3
     for query, config, location in client.calls:
         assert "panganlens_mart.vw_looker_" in query
@@ -62,15 +62,8 @@ def test_exporter_reads_only_curated_dashboard_views():
 
 
 def test_exporter_rejects_multiple_publish_state_rows():
-    client = FakeClient(
-        [
-            [FakeRow({"x": 1}), FakeRow({"x": 2})],
-            [],
-            [],
-        ]
-    )
+    client = FakeClient([[FakeRow({"x": 1}), FakeRow({"x": 2})], [], []])
     exporter = BigQueryDashboardSnapshotExporter("panganlens-demo", client=client)
-
     with pytest.raises(RuntimeError, match="more than one row"):
         exporter.export()
 
@@ -83,9 +76,7 @@ def test_write_snapshot_is_valid_json(tmp_path):
         national_prices=[],
         province_prices=[],
     )
-
     write_snapshot(snapshot, path)
-
     payload = json.loads(path.read_text(encoding="utf-8"))
     assert payload["schema_version"] == 1
     assert payload["national_prices"] == []
