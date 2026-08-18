@@ -125,7 +125,13 @@ class PreparedBatch:
 
 
 class StagingConflictError(ValueError):
-    """Raised when one business key contains more than one validated value."""
+    """Raised when validated business keys contain conflicting values."""
+
+    def __init__(self, message: str, conflict_count: int) -> None:
+        super().__init__(message)
+        if conflict_count <= 0:
+            raise ValueError("conflict_count must be positive")
+        self.conflict_count = conflict_count
 
 
 def prepare_batch(candidates: list[StagingCandidate]) -> PreparedBatch:
@@ -159,7 +165,8 @@ def prepare_batch(candidates: list[StagingCandidate]) -> PreparedBatch:
     conflicts = [key for key, records in valid_by_key.items() if len(records) > 1]
     if conflicts:
         raise StagingConflictError(
-            "validated candidates contain conflicting values for a business key"
+            "validated candidates contain conflicting values for a business key",
+            conflict_count=len(conflicts),
         )
 
     unique_valid = [next(iter(records.values())) for records in valid_by_key.values()]
