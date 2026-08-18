@@ -15,7 +15,7 @@ from panganlens.warehouse.loader import PROJECT_ID_PATTERN
 DEFAULT_LOCATION = "asia-southeast2"
 DEFAULT_STATEMENT_TIMEOUT_SECONDS = 120.0
 SHA256_PATTERN = re.compile(r"[0-9a-f]{64}")
-PANGANLENS_DATASET_PATTERN = r"panganlens_(?:raw|staging|core|mart|ops)"
+PANGANLENS_DATASET_PATTERN = r"PANGANLENS_(?:RAW|STAGING|CORE|MART|OPS)"
 
 EXECUTE = "EXECUTE"
 SKIP_AUDIT = "SKIP_AUDIT"
