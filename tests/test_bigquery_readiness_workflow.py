@@ -28,3 +28,10 @@ def test_readiness_workflow_runs_read_only_cli_and_keeps_evidence():
     assert "bigquery-readiness.json" in text
     assert UPLOAD_ARTIFACT_PIN in text
     assert "retention-days: 7" in text
+
+
+def test_readiness_workflow_uses_central_location_default():
+    text = WORKFLOW.read_text(encoding="utf-8")
+
+    assert "BIGQUERY_LOCATION" not in text
+    assert "--location" not in text
