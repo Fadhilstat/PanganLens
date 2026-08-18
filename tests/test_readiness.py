@@ -1,6 +1,6 @@
 from google.api_core.exceptions import NotFound
 
-from panganlens.readiness import BigQueryReadinessInspector, REQUIRED_DATASETS, REQUIRED_OBJECTS
+from panganlens.readiness import REQUIRED_DATASETS, REQUIRED_OBJECTS, BigQueryReadinessInspector
 
 
 class FakeRow:
@@ -45,9 +45,16 @@ class FakeClient:
 def ready_metrics():
     return {
         "active_mapping_count": 12,
+        "active_commodity_mapping_count": 4,
+        "active_channel_mapping_count": 2,
+        "active_region_mapping_count": 6,
+        "duplicate_active_mapping_count": 0,
         "pending_review_count": 0,
         "successful_capture_count": 4,
-        "publish_state_count": 1,
+        "valid_publish_state_count": 1,
+        "national_dashboard_row_count": 10,
+        "region_dashboard_row_count": 20,
+        "province_dashboard_row_count": 10,
     }
 
 
@@ -63,6 +70,9 @@ def test_readiness_reports_ready_when_all_gates_pass():
     query, config, location = client.queries[0]
     assert "panganlens_ops.source_entity_mapping" in query
     assert "panganlens_ops.source_capture" in query
+    assert "run.status = 'SUCCESS'" in query
+    assert "duplicate_active_mapping_count" in query
+    assert "vw_looker_province_map" in query
     assert config.maximum_bytes_billed == 50_000_000
     assert location == "asia-southeast2"
 
@@ -81,6 +91,38 @@ def test_readiness_blocks_when_mapping_review_is_pending():
     pending = next(check for check in report.checks if check.name == "mapping:pending_review")
     assert pending.status == "FAIL"
     assert "2 kandidat" in pending.detail
+
+
+def test_readiness_blocks_invalid_publish_pointer_and_duplicate_mapping():
+    metrics = ready_metrics()
+    metrics["valid_publish_state_count"] = 0
+    metrics["duplicate_active_mapping_count"] = 1
+    inspector = BigQueryReadinessInspector(
+        "panganlens-demo",
+        client=FakeClient(metrics=metrics),
+    )
+
+    report = inspector.inspect()
+
+    assert report.status == "BLOCKED"
+    checks = {check.name: check.status for check in report.checks}
+    assert checks["publish:public_dashboard"] == "FAIL"
+    assert checks["mapping:duplicate_active"] == "FAIL"
+
+
+def test_readiness_blocks_when_dashboard_mart_is_empty():
+    metrics = ready_metrics()
+    metrics["province_dashboard_row_count"] = 0
+    inspector = BigQueryReadinessInspector(
+        "panganlens-demo",
+        client=FakeClient(metrics=metrics),
+    )
+
+    report = inspector.inspect()
+
+    assert report.status == "BLOCKED"
+    province = next(check for check in report.checks if check.name == "mart:province")
+    assert province.status == "FAIL"
 
 
 def test_readiness_stops_before_operational_query_when_metadata_is_missing():
