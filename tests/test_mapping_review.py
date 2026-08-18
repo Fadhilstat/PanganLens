@@ -6,7 +6,6 @@ from panganlens.ingestion.mapping_review import build_mapping_candidates
 from panganlens.ingestion.orchestration import IngestionContext
 from panganlens.ingestion.pihps_parser import GridPricePoint
 
-
 ACTIVATION_SQL = Path("sql/016_activate_reviewed_mapping.sql")
 QUEUE_SQL = Path("sql/015_mapping_review_queue.sql")
 
