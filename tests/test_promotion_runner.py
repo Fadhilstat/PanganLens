@@ -41,7 +41,7 @@ def _sql_dir(tmp_path: Path) -> Path:
         "ASSERT TRUE AS 'post check';",
         encoding="utf-8",
     )
-    (tmp_path / "012_audit_cross_capture_duplicates.sql").write_text(
+    (tmp_path / "013_audit_cross_capture_duplicates.sql").write_text(
         "INSERT INTO audit_log SELECT @run_id;",
         encoding="utf-8",
     )
@@ -177,7 +177,7 @@ def test_promotion_scope_matches_lowercase_staging_contract():
 
 
 def test_cross_capture_audit_is_idempotent_and_logs_true_conflicts():
-    sql = Path("sql/012_audit_cross_capture_duplicates.sql").read_text(encoding="utf-8")
+    sql = Path("sql/013_audit_cross_capture_duplicates.sql").read_text(encoding="utf-8")
 
     assert "panganlens_ops.duplicate_log" in sql
     assert "panganlens_ops.conflict_log" in sql
