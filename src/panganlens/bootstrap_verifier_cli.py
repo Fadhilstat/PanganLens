@@ -6,7 +6,7 @@ import argparse
 import json
 
 from panganlens.bootstrap_verifier import BigQueryBootstrapVerifier
-from panganlens.readiness import DEFAULT_LOCATION
+from panganlens.schema_contract import WAREHOUSE_LOCATION
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -14,7 +14,7 @@ def build_parser() -> argparse.ArgumentParser:
         description="Verify the PanganLens BigQuery bootstrap using metadata only"
     )
     parser.add_argument("--project-id", required=True)
-    parser.add_argument("--location", default=DEFAULT_LOCATION)
+    parser.add_argument("--location", default=WAREHOUSE_LOCATION)
     return parser
 
 
