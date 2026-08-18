@@ -18,7 +18,6 @@ jobs:
     env:
       GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
       GCP_WIF_PROVIDER: ${{ vars.GCP_WIF_PROVIDER }}
-      BIGQUERY_LOCATION: asia-southeast2
     steps:
       - name: Validate required repository variables
         run: |
@@ -60,7 +59,6 @@ jobs:
           set -euo pipefail
           python -m panganlens.bootstrap_verifier_cli \
             --project-id "$GCP_PROJECT_ID" \
-            --location "$BIGQUERY_LOCATION" \
             | tee bootstrap-schema-verification.json
 
       - name: Upload schema verification evidence

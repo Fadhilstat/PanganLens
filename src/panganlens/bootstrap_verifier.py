@@ -7,8 +7,11 @@ from dataclasses import asdict, dataclass
 from google.api_core.exceptions import GoogleAPICallError, NotFound
 from google.cloud import bigquery
 
-from panganlens.readiness import DEFAULT_LOCATION
-from panganlens.schema_contract import REQUIRED_DATASETS, WAREHOUSE_OBJECTS
+from panganlens.schema_contract import (
+    REQUIRED_DATASETS,
+    WAREHOUSE_LOCATION,
+    WAREHOUSE_OBJECTS,
+)
 from panganlens.warehouse.loader import PROJECT_ID_PATTERN
 
 
@@ -38,7 +41,7 @@ class BigQueryBootstrapVerifier:
         self,
         project_id: str,
         client: bigquery.Client | None = None,
-        location: str = DEFAULT_LOCATION,
+        location: str = WAREHOUSE_LOCATION,
     ) -> None:
         if not PROJECT_ID_PATTERN.fullmatch(project_id):
             raise ValueError("project_id is not a valid Google Cloud project ID")

@@ -16,10 +16,14 @@ from panganlens.cost_guard import (
     storage_sql,
 )
 from panganlens.dashboard_snapshot import dashboard_snapshot_queries
-from panganlens.schema_contract import REQUIRED_DATASETS, WAREHOUSE_OBJECTS
+from panganlens.schema_contract import (
+    REQUIRED_DATASETS,
+    WAREHOUSE_LOCATION,
+    WAREHOUSE_OBJECTS,
+)
 from panganlens.warehouse.loader import PROJECT_ID_PATTERN
 
-DEFAULT_LOCATION = "asia-southeast2"
+DEFAULT_LOCATION = WAREHOUSE_LOCATION
 DEFAULT_MAXIMUM_BYTES_BILLED = 50_000_000
 REQUIRED_OBJECTS = tuple((obj.dataset, obj.name) for obj in WAREHOUSE_OBJECTS)
 
@@ -59,6 +63,8 @@ class BigQueryReadinessInspector:
     ) -> None:
         if not PROJECT_ID_PATTERN.fullmatch(project_id):
             raise ValueError("project_id is not a valid Google Cloud project ID")
+        if not location.strip():
+            raise ValueError("location must not be empty")
         if maximum_bytes_billed <= 0:
             raise ValueError("maximum_bytes_billed must be positive")
         if storage_safety_bytes <= 0:
@@ -129,14 +135,14 @@ class BigQueryReadinessInspector:
 
     def _check_datasets(self) -> list[ReadinessCheck]:
         checks = []
-        for dataset in REQUIRED_DATASETS:
-            resource = f"{self.project_id}.{dataset}"
+        for dataset_name in REQUIRED_DATASETS:
+            resource = f"{self.project_id}.{dataset_name}"
             try:
-                self.client.get_dataset(resource)
+                dataset = self.client.get_dataset(resource)
             except NotFound:
                 checks.append(
                     ReadinessCheck(
-                        f"dataset:{dataset}",
+                        f"dataset:{dataset_name}",
                         "FAIL",
                         "Dataset belum tersedia",
                     )
@@ -144,17 +150,26 @@ class BigQueryReadinessInspector:
             except GoogleAPICallError as exc:
                 checks.append(
                     ReadinessCheck(
-                        f"dataset:{dataset}",
+                        f"dataset:{dataset_name}",
                         "FAIL",
                         f"Gagal membaca metadata: {type(exc).__name__}",
                     )
                 )
             else:
+                actual_location = str(getattr(dataset, "location", "") or "")
+                location_matches = actual_location.casefold() == self.location.casefold()
                 checks.append(
                     ReadinessCheck(
-                        f"dataset:{dataset}",
-                        "PASS",
-                        "Dataset tersedia",
+                        f"dataset:{dataset_name}",
+                        "PASS" if location_matches else "FAIL",
+                        (
+                            f"Dataset tersedia di {actual_location}"
+                            if location_matches
+                            else (
+                                f"Lokasi dataset {actual_location or 'tidak diketahui'}; "
+                                f"diharapkan {self.location}"
+                            )
+                        ),
                     )
                 )
         return checks

@@ -6,6 +6,7 @@ import argparse
 import json
 
 from panganlens.dashboard_snapshot import BigQueryDashboardSnapshotExporter, write_snapshot
+from panganlens.schema_contract import WAREHOUSE_LOCATION
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -14,7 +15,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--project-id", required=True)
     parser.add_argument("--output", default="website/data/dashboard.json")
-    parser.add_argument("--location", default="asia-southeast2")
+    parser.add_argument("--location", default=WAREHOUSE_LOCATION)
     parser.add_argument("--maximum-bytes-billed", type=int, default=250_000_000)
     return parser
 

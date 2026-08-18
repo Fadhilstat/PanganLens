@@ -26,3 +26,14 @@ def test_cloud_access_is_restricted_to_main_for_manual_bigquery_actions():
     assert "github.ref == 'refs/heads/main'" in auth_smoke
     assert "github.ref == 'refs/heads/main'" in readiness
     assert 'GITHUB_REF" != "refs/heads/main"' in dashboard
+
+
+def test_cloud_workflows_do_not_override_central_warehouse_location():
+    for workflow in WORKFLOWS:
+        text = workflow.read_text(encoding="utf-8")
+        assert "BIGQUERY_LOCATION" not in text
+
+    auth_smoke = WORKFLOWS[0].read_text(encoding="utf-8")
+    dashboard = WORKFLOWS[2].read_text(encoding="utf-8")
+    assert "from panganlens.schema_contract import WAREHOUSE_LOCATION" in auth_smoke
+    assert "--location" not in dashboard

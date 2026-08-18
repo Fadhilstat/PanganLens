@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+WAREHOUSE_LOCATION = "asia-southeast2"
+
 
 @dataclass(frozen=True, slots=True)
 class WarehouseObject:
