@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -172,6 +173,6 @@ def _json_safe_row(row: dict[str, Any]) -> dict[str, Any]:
 def _json_safe_value(value: Any) -> Any:
     if isinstance(value, (datetime, date)):
         return value.isoformat()
-    if hasattr(value, "as_tuple"):
-        return float(value)
+    if isinstance(value, Decimal):
+        return format(value, "f")
     return value
