@@ -47,6 +47,7 @@ def _summary(**overrides):
         "missing_price_cells": 1,
         "staged_rows": 3,
         "exact_duplicates": 0,
+        "conflict_rows": 0,
         "quarantined_rows": 0,
         "latest_observation_date": date(2026, 8, 17),
         "promotion_eligible": True,
@@ -75,6 +76,7 @@ def test_success_promotes_and_advances_terminal_state():
     assert outcome.source_observation_date == date(2026, 8, 17)
     assert outcome.rows_received == 4
     assert outcome.rows_clean == 3
+    assert outcome.rows_conflict == 0
     assert promotion.calls == [("run-1", True)]
     assert states.outcomes == [outcome]
 
@@ -116,6 +118,29 @@ def test_quarantined_rows_block_promotion():
 
     assert outcome.status == "BLOCKED"
     assert outcome.rows_clean == 2
+    assert promotion.calls == []
+    assert states.outcomes == [outcome]
+
+
+def test_staging_conflicts_are_counted_and_block_promotion():
+    promotion = FakePromotionRunner()
+    states = FakeStateManager()
+
+    outcome = finalize_capture_run(
+        _summary(
+            staged_rows=0,
+            conflict_rows=2,
+            promotion_eligible=False,
+        ),
+        _context(),
+        promotion,
+        states,
+        _finished_at(),
+    )
+
+    assert outcome.status == "BLOCKED"
+    assert outcome.rows_conflict == 2
+    assert outcome.rows_clean == 0
     assert promotion.calls == []
     assert states.outcomes == [outcome]
 
