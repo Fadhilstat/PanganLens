@@ -21,6 +21,7 @@ from panganlens.ingestion.pihps_parser import parse_grid_rows
 from panganlens.warehouse.loader import PROJECT_ID_PATTERN, SHA256_PATTERN
 
 ACTIVATION_SQL_RESOURCE = "016_activate_reviewed_mapping.sql"
+REJECTION_SQL_RESOURCE = "017_reject_mapping_candidate.sql"
 
 
 class MappingOperatorError(RuntimeError):
@@ -28,7 +29,7 @@ class MappingOperatorError(RuntimeError):
 
 
 class BigQueryMappingOperator:
-    """List, generate, and approve mappings without automatic identity guesses."""
+    """List, generate, approve, and reject mappings through explicit human review."""
 
     def __init__(
         self,
@@ -140,20 +141,16 @@ LIMIT @limit
         reviewed_at: datetime,
         review_note: str,
     ) -> dict[str, Any]:
-        if not SHA256_PATTERN.fullmatch(candidate_fingerprint):
-            raise ValueError("candidate_fingerprint must be a lowercase SHA-256 digest")
+        _validate_review_metadata(
+            candidate_fingerprint,
+            reviewed_by,
+            reviewed_at,
+            review_note,
+        )
         if not canonical_id.strip():
             raise ValueError("canonical_id must not be empty")
-        if not reviewed_by.strip():
-            raise ValueError("reviewed_by must not be empty")
-        if reviewed_at.tzinfo is None:
-            raise ValueError("reviewed_at must be timezone-aware")
-        if reviewed_at > datetime.now(UTC):
-            raise ValueError("reviewed_at must not be in the future")
-        if not review_note.strip():
-            raise ValueError("review_note must explain the human mapping decision")
 
-        sql = _activation_sql_text()
+        sql = _sql_resource_text(ACTIVATION_SQL_RESOURCE)
         config = bigquery.QueryJobConfig(
             query_parameters=[
                 bigquery.ScalarQueryParameter(
@@ -172,6 +169,38 @@ LIMIT @limit
             "reviewed_by": reviewed_by,
             "reviewed_at": reviewed_at.isoformat(),
             "status": "APPROVED",
+        }
+
+    def reject(
+        self,
+        candidate_fingerprint: str,
+        reviewed_by: str,
+        reviewed_at: datetime,
+        review_note: str,
+    ) -> dict[str, Any]:
+        _validate_review_metadata(
+            candidate_fingerprint,
+            reviewed_by,
+            reviewed_at,
+            review_note,
+        )
+        sql = _sql_resource_text(REJECTION_SQL_RESOURCE)
+        config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter(
+                    "candidate_fingerprint", "STRING", candidate_fingerprint
+                ),
+                bigquery.ScalarQueryParameter("reviewed_by", "STRING", reviewed_by),
+                bigquery.ScalarQueryParameter("reviewed_at", "TIMESTAMP", reviewed_at),
+                bigquery.ScalarQueryParameter("review_note", "STRING", review_note),
+            ]
+        )
+        self.client.query(sql, job_config=config, location=self.location).result()
+        return {
+            "candidate_fingerprint": candidate_fingerprint,
+            "reviewed_by": reviewed_by,
+            "reviewed_at": reviewed_at.isoformat(),
+            "status": "REJECTED",
         }
 
     def _load_capture(self, capture_id: str) -> dict[str, Any]:
@@ -219,14 +248,36 @@ WHERE raw.capture_id = @capture_id
         return row
 
 
-def _activation_sql_text() -> str:
+def _validate_review_metadata(
+    candidate_fingerprint: str,
+    reviewed_by: str,
+    reviewed_at: datetime,
+    review_note: str,
+) -> None:
+    if not SHA256_PATTERN.fullmatch(candidate_fingerprint):
+        raise ValueError("candidate_fingerprint must be a lowercase SHA-256 digest")
+    if not reviewed_by.strip():
+        raise ValueError("reviewed_by must not be empty")
+    if reviewed_at.tzinfo is None:
+        raise ValueError("reviewed_at must be timezone-aware")
+    if reviewed_at > datetime.now(UTC):
+        raise ValueError("reviewed_at must not be in the future")
+    if not review_note.strip():
+        raise ValueError("review_note must explain the human review decision")
+
+
+def _sql_resource_text(resource_name: str) -> str:
     try:
-        resource = files("panganlens.sql").joinpath(ACTIVATION_SQL_RESOURCE)
+        resource = files("panganlens.sql").joinpath(resource_name)
         return resource.read_text(encoding="utf-8")
     except (FileNotFoundError, ModuleNotFoundError) as exc:
         raise MappingOperatorError(
-            "mapping activation SQL package resource is unavailable"
+            f"mapping SQL package resource is unavailable: {resource_name}"
         ) from exc
+
+
+def _activation_sql_text() -> str:
+    return _sql_resource_text(ACTIVATION_SQL_RESOURCE)
 
 
 def _request_date(params: dict[str, object], key: str) -> date:
