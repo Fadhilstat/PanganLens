@@ -7,25 +7,9 @@ from dataclasses import asdict, dataclass
 from google.api_core.exceptions import GoogleAPICallError, NotFound
 from google.cloud import bigquery
 
-from panganlens.readiness import DEFAULT_LOCATION, REQUIRED_DATASETS, REQUIRED_OBJECTS
+from panganlens.readiness import DEFAULT_LOCATION
+from panganlens.schema_contract import REQUIRED_DATASETS, WAREHOUSE_OBJECTS
 from panganlens.warehouse.loader import PROJECT_ID_PATTERN
-
-BOOTSTRAP_OBJECTS = REQUIRED_OBJECTS + (
-    ("panganlens_mart", "vw_looker_latest_region_price"),
-)
-
-EXPECTED_VIEW_NAMES = frozenset(
-    {
-        "vw_active_source_entity_mapping",
-        "vw_mapping_review_queue",
-        "vw_looker_national_price_daily",
-        "vw_looker_region_price_daily",
-        "vw_looker_latest_region_price",
-        "vw_looker_province_map",
-        "vw_looker_publish_state",
-        "vw_looker_pipeline_health",
-    }
-)
 
 
 @dataclass(frozen=True, slots=True)
@@ -124,40 +108,41 @@ class BigQueryBootstrapVerifier:
 
     def _check_objects(self) -> list[BootstrapVerificationCheck]:
         checks: list[BootstrapVerificationCheck] = []
-        for dataset_name, object_name in BOOTSTRAP_OBJECTS:
-            resource = f"{self.project_id}.{dataset_name}.{object_name}"
-            expected_type = "VIEW" if object_name in EXPECTED_VIEW_NAMES else "TABLE"
+        for warehouse_object in WAREHOUSE_OBJECTS:
+            resource = (
+                f"{self.project_id}.{warehouse_object.dataset}.{warehouse_object.name}"
+            )
             try:
                 table = self.client.get_table(resource)
             except NotFound:
                 checks.append(
                     BootstrapVerificationCheck(
-                        name=f"object:{dataset_name}.{object_name}",
+                        name=f"object:{warehouse_object.qualified_name}",
                         status="FAIL",
-                        detail=f"{expected_type} belum tersedia",
+                        detail=f"{warehouse_object.object_type} belum tersedia",
                     )
                 )
             except GoogleAPICallError as exc:
                 checks.append(
                     BootstrapVerificationCheck(
-                        name=f"object:{dataset_name}.{object_name}",
+                        name=f"object:{warehouse_object.qualified_name}",
                         status="FAIL",
                         detail=f"Metadata object gagal dibaca: {type(exc).__name__}",
                     )
                 )
             else:
                 actual_type = str(getattr(table, "table_type", "") or "").upper()
-                type_matches = actual_type == expected_type
+                type_matches = actual_type == warehouse_object.object_type
                 checks.append(
                     BootstrapVerificationCheck(
-                        name=f"object:{dataset_name}.{object_name}",
+                        name=f"object:{warehouse_object.qualified_name}",
                         status="PASS" if type_matches else "FAIL",
                         detail=(
-                            f"{expected_type} tersedia"
+                            f"{warehouse_object.object_type} tersedia"
                             if type_matches
                             else (
                                 f"Tipe object {actual_type or 'tidak diketahui'}; "
-                                f"diharapkan {expected_type}"
+                                f"diharapkan {warehouse_object.object_type}"
                             )
                         ),
                     )
