@@ -2,12 +2,8 @@ from dataclasses import dataclass
 
 from google.api_core.exceptions import NotFound
 
-from panganlens.bootstrap_verifier import (
-    BOOTSTRAP_OBJECTS,
-    EXPECTED_VIEW_NAMES,
-    BigQueryBootstrapVerifier,
-)
-from panganlens.readiness import REQUIRED_DATASETS
+from panganlens.bootstrap_verifier import BigQueryBootstrapVerifier
+from panganlens.schema_contract import REQUIRED_DATASETS, WAREHOUSE_OBJECTS
 
 
 @dataclass
@@ -36,6 +32,7 @@ class FakeClient:
         self.object_types = object_types or {}
         self.dataset_reads = []
         self.table_reads = []
+        self.expected_types = {obj.name: obj.object_type for obj in WAREHOUSE_OBJECTS}
 
     def get_dataset(self, resource):
         self.dataset_reads.append(resource)
@@ -49,7 +46,7 @@ class FakeClient:
         object_name = resource.split(".")[-1]
         if object_name in self.missing_objects:
             raise NotFound("missing object")
-        expected_type = "VIEW" if object_name in EXPECTED_VIEW_NAMES else "TABLE"
+        expected_type = self.expected_types[object_name]
         return FakeTable(self.object_types.get(object_name, expected_type))
 
     def query(self, *args, **kwargs):
@@ -65,16 +62,17 @@ def test_bootstrap_verifier_reports_schema_ready_from_metadata_only():
     assert report.status == "SCHEMA_READY"
     assert all(check.status == "PASS" for check in report.checks)
     assert len(client.dataset_reads) == len(REQUIRED_DATASETS)
-    assert len(client.table_reads) == len(BOOTSTRAP_OBJECTS)
-    assert len(report.checks) == len(REQUIRED_DATASETS) + len(BOOTSTRAP_OBJECTS)
+    assert len(client.table_reads) == len(WAREHOUSE_OBJECTS)
+    assert len(report.checks) == len(REQUIRED_DATASETS) + len(WAREHOUSE_OBJECTS)
 
 
 def test_bootstrap_contract_includes_intermediate_region_view():
-    assert (
-        "panganlens_mart",
-        "vw_looker_latest_region_price",
-    ) in BOOTSTRAP_OBJECTS
-    assert "vw_looker_latest_region_price" in EXPECTED_VIEW_NAMES
+    region_view = next(
+        obj for obj in WAREHOUSE_OBJECTS if obj.name == "vw_looker_latest_region_price"
+    )
+
+    assert region_view.dataset == "panganlens_mart"
+    assert region_view.object_type == "VIEW"
 
 
 def test_bootstrap_verifier_blocks_missing_dataset():
