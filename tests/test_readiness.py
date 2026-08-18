@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from google.api_core.exceptions import NotFound
 
-from panganlens.cost_guard import DEFAULT_STORAGE_SAFETY_BYTES
+from panganlens.cost_guard import DEFAULT_QUERY_SAFETY_BYTES, DEFAULT_STORAGE_SAFETY_BYTES
 from panganlens.readiness import REQUIRED_DATASETS, REQUIRED_OBJECTS, BigQueryReadinessInspector
 
 
@@ -20,8 +20,9 @@ class FakeRow:
 
 
 class FakeJob:
-    def __init__(self, rows):
-        self.rows = rows
+    def __init__(self, rows=None, total_bytes_processed=None):
+        self.rows = rows or []
+        self.total_bytes_processed = total_bytes_processed
 
     def result(self):
         return self.rows
@@ -35,6 +36,7 @@ class FakeClient:
         metrics=None,
         storage_rows=None,
         billing_models=None,
+        query_estimates=None,
     ):
         self.missing_datasets = set(missing_datasets or [])
         self.missing_objects = set(missing_objects or [])
@@ -48,6 +50,7 @@ class FakeClient:
             for dataset in REQUIRED_DATASETS
         ]
         self.billing_models = billing_models or {}
+        self.query_estimates = list(query_estimates or [10, 20, 30])
         self.queries = []
 
     def get_dataset(self, resource):
@@ -66,6 +69,8 @@ class FakeClient:
         self.queries.append((query, job_config, location))
         if "INFORMATION_SCHEMA.TABLE_STORAGE" in query:
             return FakeJob([FakeRow(row) for row in self.storage_rows])
+        if job_config is not None and job_config.dry_run:
+            return FakeJob(total_bytes_processed=self.query_estimates.pop(0))
         return FakeJob([FakeRow(self.metrics)])
 
 
@@ -93,12 +98,17 @@ def test_readiness_reports_ready_when_all_gates_pass():
 
     assert report.status == "READY"
     assert all(check.status == "PASS" for check in report.checks)
-    assert len(client.queries) == 2
+    assert len(client.queries) == 5
     storage_query, storage_config, storage_location = client.queries[0]
-    query, config, location = client.queries[1]
     assert "INFORMATION_SCHEMA.TABLE_STORAGE" in storage_query
     assert storage_config.maximum_bytes_billed == 50_000_000
     assert storage_location == "asia-southeast2"
+
+    dry_runs = client.queries[1:4]
+    assert all(config.dry_run for _, config, _ in dry_runs)
+    assert all(config.use_query_cache is False for _, config, _ in dry_runs)
+
+    query, config, location = client.queries[4]
     assert "panganlens_ops.source_entity_mapping" in query
     assert "panganlens_ops.source_capture" in query
     assert "run.status = 'SUCCESS'" in query
@@ -107,6 +117,25 @@ def test_readiness_reports_ready_when_all_gates_pass():
     assert config.maximum_bytes_billed == 50_000_000
     assert location == "asia-southeast2"
     assert report.metrics["storage_billable_bytes"] == 0
+    assert report.metrics["dashboard_query_total_bytes_processed"] == 60
+
+
+def test_readiness_blocks_when_dashboard_query_exceeds_budget():
+    client = FakeClient(
+        metrics=ready_metrics(),
+        query_estimates=[10, DEFAULT_QUERY_SAFETY_BYTES + 1, 30],
+    )
+    inspector = BigQueryReadinessInspector("panganlens-demo", client=client)
+
+    report = inspector.inspect()
+
+    assert report.status == "BLOCKED"
+    query_check = next(
+        check for check in report.checks if check.name == "cost:dashboard_queries"
+    )
+    assert query_check.status == "FAIL"
+    assert len(client.queries) == 4
+    assert "panganlens_ops.source_entity_mapping" not in client.queries[-1][0]
 
 
 def test_readiness_blocks_when_storage_exceeds_safety_limit():

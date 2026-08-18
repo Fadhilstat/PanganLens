@@ -56,7 +56,8 @@ class BigQueryDashboardSnapshotExporter:
         self.client = client or bigquery.Client(project=project_id, location=location)
 
     def export(self) -> DashboardSnapshot:
-        publish_rows = self._query(_publish_state_sql(self.project_id))
+        queries = dashboard_snapshot_queries(self.project_id)
+        publish_rows = self._query(queries["publish_state"])
         if len(publish_rows) > 1:
             raise RuntimeError("publish state returned more than one row")
         publish_state = publish_rows[0] if publish_rows else None
@@ -64,14 +65,24 @@ class BigQueryDashboardSnapshotExporter:
         return DashboardSnapshot(
             generated_at=datetime.now(UTC).isoformat(),
             publish_state=publish_state,
-            national_prices=self._query(_national_price_sql(self.project_id)),
-            province_prices=self._query(_province_price_sql(self.project_id)),
+            national_prices=self._query(queries["national_prices"]),
+            province_prices=self._query(queries["province_prices"]),
         )
 
     def _query(self, sql: str) -> list[dict[str, Any]]:
         config = bigquery.QueryJobConfig(maximum_bytes_billed=self.maximum_bytes_billed)
         rows = self.client.query(sql, job_config=config, location=self.location).result()
         return [_json_safe_row(dict(row.items())) for row in rows]
+
+
+def dashboard_snapshot_queries(project_id: str) -> dict[str, str]:
+    """Return the exact curated queries used to build the public website snapshot."""
+
+    return {
+        "publish_state": _publish_state_sql(project_id),
+        "national_prices": _national_price_sql(project_id),
+        "province_prices": _province_price_sql(project_id),
+    }
 
 
 def write_snapshot(snapshot: DashboardSnapshot, output_path: str | Path) -> None:
