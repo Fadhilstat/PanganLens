@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import UTC, date, datetime
 
 from panganlens.ingestion.pihps_interface import SourceEvidence, SourceRows
 from panganlens.ingestion.pihps_probe import build_probe_summary, previous_business_day
@@ -13,6 +13,9 @@ def _capture(rows):
         payload_sha256="0" * 64,
         request_fingerprint="1" * 64,
         schema_fingerprint="2" * 64,
+        requested_at=datetime(2026, 8, 15, 10, 0, tzinfo=UTC),
+        completed_at=datetime(2026, 8, 15, 10, 0, 1, tzinfo=UTC),
+        http_status=200,
     )
     return SourceRows(rows=tuple(rows), payload_text="{}", evidence=evidence)
 

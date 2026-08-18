@@ -29,6 +29,14 @@ class RawCaptureRecord:
     payload_text: str
     payload_bytes: int
     payload_sha256: str
+    source_name: str
+    source_url: str
+    source_host: str
+    content_type: str
+    requested_at: datetime
+    completed_at: datetime
+    http_status: int
+    status: str = "SUCCESS"
 
     def validate(self) -> None:
         if not self.capture_id.strip():
@@ -37,8 +45,22 @@ class RawCaptureRecord:
             raise ValueError("run_id must not be empty")
         if not self.source_method.strip():
             raise ValueError("source_method must not be empty")
+        if not self.source_name.strip():
+            raise ValueError("source_name must not be empty")
+        if not self.source_url.strip() or not self.source_host.strip():
+            raise ValueError("source URL and host must not be empty")
+        if not self.content_type.strip():
+            raise ValueError("content_type must not be empty")
+        if self.status != "SUCCESS":
+            raise ValueError("raw capture status must be SUCCESS")
         if self.captured_at.tzinfo is None:
             raise ValueError("captured_at must be timezone-aware")
+        if self.requested_at.tzinfo is None or self.completed_at.tzinfo is None:
+            raise ValueError("source timing evidence must be timezone-aware")
+        if self.completed_at < self.requested_at:
+            raise ValueError("completed_at cannot be earlier than requested_at")
+        if not 200 <= self.http_status < 300:
+            raise ValueError("http_status must be a successful HTTP status")
         if not SHA256_PATTERN.fullmatch(self.request_fingerprint):
             raise ValueError("request_fingerprint must be a lowercase SHA-256 digest")
         if not SHA256_PATTERN.fullmatch(self.schema_fingerprint):
@@ -70,21 +92,72 @@ class BigQueryWarehouse:
         self.client = client or bigquery.Client(project=project_id, location=location)
 
     def persist_raw_capture(self, record: RawCaptureRecord) -> None:
-        """Insert one capture once, and reject capture ID reuse with new content."""
+        """Persist capture audit and raw payload idempotently in one script."""
 
         record.validate()
-        table = f"`{self.project_id}.panganlens_raw.raw_food_price_capture`"
+        raw_table = f"`{self.project_id}.panganlens_raw.raw_food_price_capture`"
+        audit_table = f"`{self.project_id}.panganlens_ops.source_capture`"
         query = f"""
 DECLARE existing_hash STRING DEFAULT (
   SELECT ANY_VALUE(payload_sha256)
-  FROM {table}
+  FROM {raw_table}
+  WHERE capture_id = @capture_id
+);
+DECLARE existing_request_fingerprint STRING DEFAULT (
+  SELECT ANY_VALUE(request_fingerprint)
+  FROM {audit_table}
+  WHERE capture_id = @capture_id
+);
+DECLARE existing_schema_fingerprint STRING DEFAULT (
+  SELECT ANY_VALUE(schema_fingerprint)
+  FROM {audit_table}
   WHERE capture_id = @capture_id
 );
 
 ASSERT existing_hash IS NULL OR existing_hash = @payload_sha256
   AS 'capture_id already exists with a different payload hash';
+ASSERT existing_request_fingerprint IS NULL
+  OR existing_request_fingerprint = @request_fingerprint
+  AS 'capture_id already exists with a different request fingerprint';
+ASSERT existing_schema_fingerprint IS NULL
+  OR existing_schema_fingerprint = @schema_fingerprint
+  AS 'capture_id already exists with a different schema fingerprint';
 
-MERGE {table} AS target
+MERGE {audit_table} AS target
+USING (
+  SELECT
+    @capture_id AS capture_id,
+    @run_id AS run_id,
+    @source_name AS source_name,
+    @source_method AS source_method,
+    @source_url AS source_url,
+    @source_host AS source_host,
+    @content_type AS content_type,
+    @request_fingerprint AS request_fingerprint,
+    @schema_fingerprint AS schema_fingerprint,
+    @requested_at AS requested_at,
+    @completed_at AS completed_at,
+    @http_status AS http_status,
+    @payload_bytes AS payload_bytes,
+    @payload_sha256 AS payload_sha256,
+    @status AS status
+) AS source
+ON target.capture_id = source.capture_id
+WHEN NOT MATCHED THEN
+  INSERT (
+    capture_id, run_id, source_name, source_method, source_url, source_host,
+    content_type, request_fingerprint, schema_fingerprint, requested_at,
+    completed_at, http_status, payload_bytes, payload_sha256, status, error_message
+  )
+  VALUES (
+    source.capture_id, source.run_id, source.source_name, source.source_method,
+    source.source_url, source.source_host, source.content_type,
+    source.request_fingerprint, source.schema_fingerprint, source.requested_at,
+    source.completed_at, source.http_status, source.payload_bytes,
+    source.payload_sha256, source.status, NULL
+  );
+
+MERGE {raw_table} AS target
 USING (
   SELECT
     @capture_id AS capture_id,
@@ -129,7 +202,11 @@ WHEN NOT MATCHED THEN
             bigquery.ScalarQueryParameter("capture_id", "STRING", record.capture_id),
             bigquery.ScalarQueryParameter("run_id", "STRING", record.run_id),
             bigquery.ScalarQueryParameter("captured_at", "TIMESTAMP", record.captured_at),
+            bigquery.ScalarQueryParameter("source_name", "STRING", record.source_name),
             bigquery.ScalarQueryParameter("source_method", "STRING", record.source_method),
+            bigquery.ScalarQueryParameter("source_url", "STRING", record.source_url),
+            bigquery.ScalarQueryParameter("source_host", "STRING", record.source_host),
+            bigquery.ScalarQueryParameter("content_type", "STRING", record.content_type),
             bigquery.ScalarQueryParameter(
                 "request_parameters_json",
                 "STRING",
@@ -141,9 +218,13 @@ WHEN NOT MATCHED THEN
             bigquery.ScalarQueryParameter(
                 "schema_fingerprint", "STRING", record.schema_fingerprint
             ),
+            bigquery.ScalarQueryParameter("requested_at", "TIMESTAMP", record.requested_at),
+            bigquery.ScalarQueryParameter("completed_at", "TIMESTAMP", record.completed_at),
+            bigquery.ScalarQueryParameter("http_status", "INT64", record.http_status),
             bigquery.ScalarQueryParameter("payload_text", "STRING", record.payload_text),
             bigquery.ScalarQueryParameter("payload_bytes", "INT64", record.payload_bytes),
             bigquery.ScalarQueryParameter("payload_sha256", "STRING", record.payload_sha256),
+            bigquery.ScalarQueryParameter("status", "STRING", record.status),
         ]
         job_config = bigquery.QueryJobConfig(query_parameters=parameters)
         self.client.query(query, job_config=job_config, location=self.location).result()

@@ -12,7 +12,7 @@ import json
 import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import date
+from datetime import UTC, date, datetime
 from typing import Any
 from urllib.parse import urlparse
 
@@ -92,7 +92,7 @@ class ResponseShape:
 
 @dataclass(frozen=True, slots=True)
 class SourceEvidence:
-    """Integrity metadata retained beside a source response."""
+    """Integrity and transport metadata retained beside a source response."""
 
     source_url: str
     source_host: str
@@ -101,6 +101,9 @@ class SourceEvidence:
     payload_sha256: str
     request_fingerprint: str
     schema_fingerprint: str
+    requested_at: datetime
+    completed_at: datetime
+    http_status: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -183,6 +186,7 @@ class PihpsWebsiteClient:
             "User-Agent": "PanganLens/0.1 (+https://github.com/Fadhilstat/PanganLens)",
             "X-Requested-With": "XMLHttpRequest",
         }
+        requested_at = datetime.now(UTC)
         try:
             response = self.session.get(
                 url,
@@ -220,6 +224,7 @@ class PihpsWebsiteClient:
 
         rows = extract_rows(payload)
         shape = response_shape(rows)
+        completed_at = datetime.now(UTC)
         evidence = SourceEvidence(
             source_url=url,
             source_host=urlparse(url).hostname or "",
@@ -228,6 +233,9 @@ class PihpsWebsiteClient:
             payload_sha256=hashlib.sha256(payload_bytes).hexdigest(),
             request_fingerprint=_request_fingerprint(path, request_params),
             schema_fingerprint=shape.schema_fingerprint,
+            requested_at=requested_at,
+            completed_at=completed_at,
+            http_status=response.status_code,
         )
         return SourceRows(tuple(rows), payload_text, evidence)
 
