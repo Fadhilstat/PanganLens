@@ -9,6 +9,7 @@ concurrency:
 
 jobs:
   readiness:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -17,14 +18,13 @@ jobs:
     env:
       GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
       GCP_WIF_PROVIDER: ${{ vars.GCP_WIF_PROVIDER }}
-      GCP_SERVICE_ACCOUNT: ${{ vars.GCP_SERVICE_ACCOUNT }}
       BIGQUERY_LOCATION: asia-southeast2
     steps:
       - name: Validate required repository variables
         run: |
           set -eu
           missing=""
-          for name in GCP_PROJECT_ID GCP_WIF_PROVIDER GCP_SERVICE_ACCOUNT; do
+          for name in GCP_PROJECT_ID GCP_WIF_PROVIDER; do
             eval "value=\${$name:-}"
             if [ -z "$value" ]; then
               missing="$missing $name"
@@ -40,12 +40,11 @@ jobs:
           persist-credentials: false
 
       - id: auth
-        name: Authenticate to Google Cloud with Workload Identity Federation
+        name: Authenticate directly with Workload Identity Federation
         uses: google-github-actions/auth@v3
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
           workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
-          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
           create_credentials_file: true
           export_environment_variables: true
 
