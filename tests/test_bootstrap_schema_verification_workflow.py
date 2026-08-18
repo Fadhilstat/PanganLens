@@ -46,3 +46,10 @@ def test_bootstrap_verification_workflow_uses_ci_constraints():
     text = WORKFLOW.read_text(encoding="utf-8")
 
     assert "python -m pip install -c constraints/ci.txt -e ." in text
+
+
+def test_bootstrap_verification_workflow_uses_central_location_default():
+    text = WORKFLOW.read_text(encoding="utf-8")
+
+    assert "BIGQUERY_LOCATION" not in text
+    assert "--location" not in text
