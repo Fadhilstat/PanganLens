@@ -32,7 +32,6 @@ jobs:
     env:
       GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
       GCP_WIF_PROVIDER: ${{ vars.GCP_WIF_PROVIDER }}
-      BIGQUERY_LOCATION: asia-southeast2
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -78,7 +77,6 @@ jobs:
           python -m pip install -c constraints/ci.txt -e .
           python scripts/export_dashboard_snapshot.py \
             --project-id "$GCP_PROJECT_ID" \
-            --location "$BIGQUERY_LOCATION" \
             --output website/data/dashboard.json
 
       - name: Configure Pages
