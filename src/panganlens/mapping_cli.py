@@ -25,6 +25,18 @@ def build_parser() -> argparse.ArgumentParser:
     list_parser = subparsers.add_parser("list", help="List mappings waiting for review.")
     list_parser.add_argument("--limit", type=int, default=100)
 
+    canonical = subparsers.add_parser(
+        "canonical",
+        help="List active canonical dimension rows for human review.",
+    )
+    canonical.add_argument(
+        "--entity-type",
+        required=True,
+        choices=("commodity", "channel", "region", "market"),
+    )
+    canonical.add_argument("--search", default="")
+    canonical.add_argument("--limit", type=int, default=50)
+
     generate = subparsers.add_parser(
         "generate",
         help="Generate review candidates from one stored source capture.",
@@ -65,6 +77,12 @@ def run(args: argparse.Namespace) -> dict[str, object] | list[dict[str, object]]
     )
     if args.command == "list":
         return operator.list_pending(args.limit)
+    if args.command == "canonical":
+        return operator.list_canonical_options(
+            args.entity_type,
+            args.search,
+            args.limit,
+        )
     if args.command == "generate":
         return operator.generate_from_capture(
             args.capture_id,
