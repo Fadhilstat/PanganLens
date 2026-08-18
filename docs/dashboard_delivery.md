@@ -38,12 +38,11 @@ The repository ships an empty snapshot instead of fabricated demo values. Until 
 
 `dashboard_pages.yml` packages the static `website/` directory and deploys it through GitHub Pages. The repository must have Pages configured to use GitHub Actions as its publishing source.
 
-A normal push deploys the snapshot already present in the repository. A manual workflow run can optionally refresh the snapshot from BigQuery first. The BigQuery refresh path uses Workload Identity Federation through these repository variables:
+A normal push deploys the snapshot already present in the repository and does not contact Google Cloud. A manual workflow run can optionally refresh the snapshot from BigQuery first. The BigQuery refresh path uses direct Workload Identity Federation through these repository variables:
 
 - `GCP_PROJECT_ID`
 - `GCP_WIF_PROVIDER`
-- `GCP_SERVICE_ACCOUNT`
 
-No service-account JSON key is stored in the repository.
+No service account and no service-account JSON key are required for this read-only refresh path. BigQuery refresh is accepted only from `main`.
 
-The refresh remains manual until the WIF smoke test and production mappings are both validated. After those gates are green, a daily refresh schedule can be added without changing the website architecture.
+The refresh remains manual until direct WIF, production mappings, and readiness are validated. After those gates are green, a daily refresh schedule can be considered without changing the website architecture.

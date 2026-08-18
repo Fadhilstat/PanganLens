@@ -3,15 +3,17 @@ from pathlib import Path
 WORKFLOW = Path(__file__).resolve().parents[1] / ".github" / "workflows" / "bigquery_readiness.yml"
 
 
-def test_readiness_workflow_is_manual_and_keyless():
+def test_readiness_workflow_is_manual_direct_wif_and_keyless():
     text = WORKFLOW.read_text(encoding="utf-8")
 
     assert "workflow_dispatch:" in text
     assert "schedule:" not in text
+    assert "github.ref == 'refs/heads/main'" in text
     assert "id-token: write" in text
     assert "google-github-actions/auth@v3" in text
     assert "GCP_WIF_PROVIDER" in text
-    assert "GCP_SERVICE_ACCOUNT" in text
+    assert "GCP_SERVICE_ACCOUNT" not in text
+    assert "service_account:" not in text
     assert "service_account_key" not in text
     assert "credentials_json" not in text
 
