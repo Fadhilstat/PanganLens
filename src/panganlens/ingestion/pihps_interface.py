@@ -12,7 +12,7 @@ import json
 import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import date
+from datetime import UTC, date, datetime
 from typing import Any
 from urllib.parse import urlparse
 
@@ -92,7 +92,7 @@ class ResponseShape:
 
 @dataclass(frozen=True, slots=True)
 class SourceEvidence:
-    """Integrity metadata retained beside a source response."""
+    """Integrity and transport metadata retained beside a source response."""
 
     source_url: str
     source_host: str
@@ -101,6 +101,9 @@ class SourceEvidence:
     payload_sha256: str
     request_fingerprint: str
     schema_fingerprint: str
+    requested_at: datetime
+    completed_at: datetime
+    http_status: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -183,6 +186,7 @@ class PihpsWebsiteClient:
             "User-Agent": "PanganLens/0.1 (+https://github.com/Fadhilstat/PanganLens)",
             "X-Requested-With": "XMLHttpRequest",
         }
+        requested_at = datetime.now(UTC)
         try:
             response = self.session.get(
                 url,
@@ -220,6 +224,7 @@ class PihpsWebsiteClient:
 
         rows = extract_rows(payload)
         shape = response_shape(rows)
+        completed_at = datetime.now(UTC)
         evidence = SourceEvidence(
             source_url=url,
             source_host=urlparse(url).hostname or "",
@@ -228,6 +233,9 @@ class PihpsWebsiteClient:
             payload_sha256=hashlib.sha256(payload_bytes).hexdigest(),
             request_fingerprint=_request_fingerprint(path, request_params),
             schema_fingerprint=shape.schema_fingerprint,
+            requested_at=requested_at,
+            completed_at=completed_at,
+            http_status=response.status_code,
         )
         return SourceRows(tuple(rows), payload_text, evidence)
 
@@ -270,126 +278,113 @@ def response_shape(rows: Sequence[Mapping[str, Any]]) -> ResponseShape:
 
 
 def validate_schema_contract(
-    rows: Sequence[Mapping[str, Any]],
-    expected_normalized_keys: frozenset[str],
+    rows: Sequence[Mapping[str, Any]], expected_keys: frozenset[str]
 ) -> ResponseShape:
-    """Fail closed when PIHPS adds or removes reviewed fields."""
+    """Reject schema drift while allowing dynamic PIHPS date columns."""
 
     shape = response_shape(rows)
     actual = frozenset(shape.normalized_keys)
-    if actual != expected_normalized_keys:
-        added = sorted(actual - expected_normalized_keys)
-        removed = sorted(expected_normalized_keys - actual)
+    if actual != expected_keys:
         raise PihpsInterfaceError(
-            f"PIHPS schema changed; added={added or []}; removed={removed or []}"
+            "PIHPS response schema changed: "
+            f"expected {sorted(expected_keys)}, received {sorted(actual)}"
         )
     return shape
 
 
 def pick_reference_id(
     rows: Sequence[Mapping[str, Any]],
-    id_keys: Sequence[str],
+    candidate_keys: Sequence[str],
     preferred: str | None = None,
     required_prefix: str | None = None,
 ) -> str:
-    """Choose a usable reference ID from a PIHPS reference response."""
+    """Pick a usable reference ID without depending on row order."""
 
     candidates: list[str] = []
     for row in rows:
-        for key in id_keys:
+        for key in candidate_keys:
             value = row.get(key)
             if value is None:
                 continue
-            candidate = str(value).strip()
-            if not candidate:
+            text = str(value).strip()
+            if not text:
                 continue
-            if required_prefix and not candidate.startswith(required_prefix):
+            if required_prefix and not text.startswith(required_prefix):
                 continue
-            candidates.append(candidate)
+            candidates.append(text)
             break
     if preferred and preferred in candidates:
         return preferred
-    if candidates:
-        return candidates[0]
-    raise PihpsInterfaceError("PIHPS reference response did not contain a usable ID")
-
-
-def verify_payload_text(payload_text: str, expected_sha256: str) -> bool:
-    """Verify stored raw text against the source-capture hash."""
-
-    actual = hashlib.sha256(payload_text.encode("utf-8")).hexdigest()
-    return actual.lower() == expected_sha256.lower()
-
-
-def _normalize_schema_key(key: str) -> str:
-    return "<date>" if DATE_COLUMN_PATTERN.fullmatch(key) else key
-
-
-def _validate_source_url(url: str, allowed_hosts: frozenset[str]) -> None:
-    parsed = urlparse(url)
-    if parsed.scheme != "https":
-        raise ValueError("PIHPS source must use HTTPS")
-    host = (parsed.hostname or "").lower()
-    if host not in {item.lower() for item in allowed_hosts}:
-        raise ValueError(f"PIHPS source host is not allowlisted: {host or 'missing'}")
-
-
-def _parse_content_length(value: str | None) -> int | None:
-    if value is None or not value.strip():
-        return None
-    try:
-        length = int(value)
-    except ValueError as exc:
-        raise PihpsInterfaceError("PIHPS content-length header is invalid") from exc
-    if length < 0:
-        raise PihpsInterfaceError("PIHPS content-length header is invalid")
-    return length
-
-
-def _read_limited_body(response: Any, max_payload_bytes: int) -> bytes:
-    if hasattr(response, "iter_content"):
-        chunks: list[bytes] = []
-        size = 0
-        for chunk in response.iter_content(chunk_size=64 * 1024):
-            if not chunk:
-                continue
-            size += len(chunk)
-            if size > max_payload_bytes:
-                raise PihpsInterfaceError("PIHPS payload exceeds the configured size limit")
-            chunks.append(chunk)
-        return b"".join(chunks)
-    content = bytes(getattr(response, "content", b""))
-    if len(content) > max_payload_bytes:
-        raise PihpsInterfaceError("PIHPS payload exceeds the configured size limit")
-    return content
-
-
-def _request_fingerprint(path: str, params: Mapping[str, str | int]) -> str:
-    payload = {
-        "path": path,
-        "params": {str(key): str(value) for key, value in sorted(params.items())},
-    }
-    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    return hashlib.sha256(encoded).hexdigest()
-
-
-def _format_source_date(value: date) -> str:
-    return f"{value.isoformat()}T00:00:00.000"
+    if not candidates:
+        raise PihpsInterfaceError("PIHPS reference response has no usable identifier")
+    return sorted(set(candidates))[0]
 
 
 def _build_session() -> requests.Session:
+    session = requests.Session()
     retry = Retry(
-        total=2,
-        connect=2,
-        read=2,
-        status=2,
-        backoff_factor=1.0,
+        total=3,
+        connect=3,
+        read=3,
+        status=3,
+        backoff_factor=0.5,
         status_forcelist=RETRY_STATUS_CODES,
         allowed_methods=frozenset({"GET"}),
         respect_retry_after_header=True,
         raise_on_status=False,
     )
     adapter = HTTPAdapter(max_retries=retry)
-    session = requests.Session()
     session.mount("https://", adapter)
     return session
+
+
+def _validate_source_url(url: str, allowed_hosts: frozenset[str]) -> None:
+    parsed = urlparse(url)
+    if parsed.scheme != "https":
+        raise ValueError("PIHPS source must use HTTPS")
+    if parsed.username or parsed.password:
+        raise ValueError("credentials are not allowed in PIHPS source URLs")
+    if parsed.hostname not in allowed_hosts:
+        raise ValueError("PIHPS source host is not allowlisted")
+
+
+def _parse_content_length(value: str | None) -> int | None:
+    if value is None:
+        return None
+    try:
+        parsed = int(value)
+    except ValueError as exc:
+        raise PihpsInterfaceError("PIHPS returned an invalid content-length header") from exc
+    if parsed < 0:
+        raise PihpsInterfaceError("PIHPS returned a negative content-length header")
+    return parsed
+
+
+def _read_limited_body(response: requests.Response, max_payload_bytes: int) -> bytes:
+    chunks: list[bytes] = []
+    total = 0
+    for chunk in response.iter_content(chunk_size=64 * 1024):
+        if not chunk:
+            continue
+        total += len(chunk)
+        if total > max_payload_bytes:
+            raise PihpsInterfaceError("PIHPS payload exceeds the configured size limit")
+        chunks.append(chunk)
+    return b"".join(chunks)
+
+
+def _request_fingerprint(path: str, params: Mapping[str, str | int]) -> str:
+    canonical = json.dumps(
+        {"path": path, "params": dict(sorted(params.items()))},
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _normalize_schema_key(key: str) -> str:
+    return "<date>" if DATE_COLUMN_PATTERN.fullmatch(key) else key
+
+
+def _format_source_date(value: date) -> str:
+    return value.strftime("%d/%m/%Y")
