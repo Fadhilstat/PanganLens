@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import asdict
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -18,10 +18,9 @@ from panganlens.ingestion.mapping_review import (
 from panganlens.ingestion.orchestration import IngestionContext
 from panganlens.ingestion.pihps_interface import extract_rows
 from panganlens.ingestion.pihps_parser import parse_grid_rows
-from panganlens.warehouse.loader import PROJECT_ID_PATTERN
+from panganlens.warehouse.loader import PROJECT_ID_PATTERN, SHA256_PATTERN
 
 ACTIVATION_SQL = Path(__file__).resolve().parents[3] / "sql/016_activate_reviewed_mapping.sql"
-SOURCE_METHOD = "pihps_website_json"
 
 
 class MappingOperatorError(RuntimeError):
@@ -141,16 +140,20 @@ LIMIT @limit
         reviewed_at: datetime,
         review_note: str,
     ) -> dict[str, Any]:
-        if len(candidate_fingerprint) != 64:
-            raise ValueError("candidate_fingerprint must be a SHA-256 hex digest")
+        if not SHA256_PATTERN.fullmatch(candidate_fingerprint):
+            raise ValueError("candidate_fingerprint must be a lowercase SHA-256 digest")
         if not canonical_id.strip():
             raise ValueError("canonical_id must not be empty")
         if not reviewed_by.strip():
             raise ValueError("reviewed_by must not be empty")
         if reviewed_at.tzinfo is None:
             raise ValueError("reviewed_at must be timezone-aware")
+        if reviewed_at > datetime.now(UTC):
+            raise ValueError("reviewed_at must not be in the future")
         if not review_note.strip():
             raise ValueError("review_note must explain the human mapping decision")
+        if not ACTIVATION_SQL.is_file():
+            raise MappingOperatorError("mapping activation SQL file is unavailable")
 
         sql = ACTIVATION_SQL.read_text(encoding="utf-8")
         config = bigquery.QueryJobConfig(
@@ -187,10 +190,16 @@ SELECT
   audit.status
 FROM `{self.project_id}.panganlens_raw.raw_food_price_capture` AS raw
 JOIN `{self.project_id}.panganlens_ops.source_capture` AS audit
-  USING (capture_id)
+  ON audit.capture_id = raw.capture_id
+ AND audit.run_id = raw.run_id
+ AND audit.source_method = raw.source_method
+ AND audit.request_fingerprint = raw.request_fingerprint
+ AND audit.schema_fingerprint = raw.schema_fingerprint
+ AND audit.payload_sha256 = raw.payload_sha256
 WHERE raw.capture_id = @capture_id
   AND audit.status = 'SUCCESS'
-  AND raw.payload_sha256 = audit.payload_sha256
+  AND audit.source_host = 'www.bi.go.id'
+  AND STARTS_WITH(LOWER(audit.content_type), 'application/json')
 """
         config = bigquery.QueryJobConfig(
             query_parameters=[
