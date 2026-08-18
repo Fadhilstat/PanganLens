@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Protocol
 
 from panganlens.ingestion.orchestration import (
@@ -32,11 +32,11 @@ def execute_grid_run(
     staging_writer: BigQueryStagingWriter,
     promotion_runner: PromotionRunner,
     state_manager: RunStateManager,
-    finished_at: datetime,
+    finished_at: datetime | None = None,
 ) -> PipelineOutcome:
     """Execute one reviewed grid request and persist exactly one terminal outcome."""
 
-    if finished_at.tzinfo is None:
+    if finished_at is not None and finished_at.tzinfo is None:
         raise ValueError("finished_at must be timezone-aware")
     context.validate()
     _validate_request_context(request, context)
@@ -51,10 +51,11 @@ def execute_grid_run(
             staging_writer,
         )
     except Exception as exc:
+        terminal_time = finished_at or datetime.now(UTC)
         outcome = PipelineOutcome(
             run_id=context.run_id,
             started_at=context.captured_at,
-            finished_at=finished_at,
+            finished_at=terminal_time,
             status="FAILED",
             source_observation_date=None,
             rows_received=0,
@@ -67,12 +68,13 @@ def execute_grid_run(
         state_manager.finalize(outcome)
         raise
 
+    terminal_time = finished_at or datetime.now(UTC)
     return finalize_capture_run(
         summary,
         context,
         promotion_runner,
         state_manager,
-        finished_at,
+        terminal_time,
     )
 
 
