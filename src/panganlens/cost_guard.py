@@ -8,6 +8,7 @@ from google.cloud import bigquery
 
 FREE_TIER_STORAGE_BYTES = 10 * 1024**3
 DEFAULT_STORAGE_SAFETY_BYTES = 8 * 1024**3
+DEFAULT_QUERY_SAFETY_BYTES = 250_000_000
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,6 +24,23 @@ class StorageEstimate:
     @property
     def within_safety_limit(self) -> bool:
         return self.billable_bytes <= self.safety_bytes
+
+
+@dataclass(frozen=True, slots=True)
+class QueryEstimate:
+    """Dry-run estimate for a bounded group of read-only queries."""
+
+    total_bytes_processed: int
+    per_query_safety_bytes: int
+    query_bytes: dict[str, int]
+
+    @property
+    def total_safety_bytes(self) -> int:
+        return self.per_query_safety_bytes * len(self.query_bytes)
+
+    @property
+    def within_safety_limit(self) -> bool:
+        return all(value <= self.per_query_safety_bytes for value in self.query_bytes.values())
 
 
 def normalize_storage_billing_model(value: str | None) -> str:
@@ -65,6 +83,35 @@ def estimate_storage(
         free_tier_bytes=FREE_TIER_STORAGE_BYTES,
         dataset_bytes=dataset_bytes,
         billing_models=billing_models,
+    )
+
+
+def estimate_query_bytes(
+    client: bigquery.Client,
+    queries: dict[str, str],
+    location: str,
+    per_query_safety_bytes: int = DEFAULT_QUERY_SAFETY_BYTES,
+) -> QueryEstimate:
+    """Dry-run queries and return estimated bytes without executing their data reads."""
+
+    if not queries:
+        raise ValueError("at least one query is required")
+    if per_query_safety_bytes <= 0:
+        raise ValueError("per-query safety limit must be positive")
+
+    query_bytes: dict[str, int] = {}
+    for name, sql in queries.items():
+        config = bigquery.QueryJobConfig(dry_run=True, use_query_cache=False)
+        job = client.query(sql, job_config=config, location=location)
+        bytes_processed = job.total_bytes_processed
+        if bytes_processed is None:
+            raise RuntimeError(f"dry run returned no byte estimate for {name}")
+        query_bytes[name] = int(bytes_processed)
+
+    return QueryEstimate(
+        total_bytes_processed=sum(query_bytes.values()),
+        per_query_safety_bytes=per_query_safety_bytes,
+        query_bytes=query_bytes,
     )
 
 
