@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 
-from panganlens.readiness import BigQueryReadinessInspector, DEFAULT_LOCATION
+from panganlens.readiness import DEFAULT_LOCATION, BigQueryReadinessInspector
 
 
 def build_parser() -> argparse.ArgumentParser:
