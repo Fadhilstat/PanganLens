@@ -1,0 +1,7 @@
+# Direct dependency constraints for PanganLens GitHub Actions on Python 3.11.
+# Keep pyproject.toml ranges flexible for package metadata. Update this file only
+# through a reviewed PR after the full quality suite and live PIHPS probe pass.
+google-cloud-bigquery==3.43.0
+requests==2.34.2
+pytest==9.1.1
+ruff==0.16.3
