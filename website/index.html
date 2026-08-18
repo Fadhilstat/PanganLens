@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="PanganLens Indonesia, dashboard publik untuk memantau harga pangan dan perbedaan harga antarprovinsi.">
+  <meta name="description" content="PanganLens Indonesia, dashboard publik untuk memahami perubahan harga pangan dan perbedaan harga antarprovinsi.">
   <title>PanganLens Indonesia</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -17,7 +17,7 @@
       <a href="#ringkasan">Ringkasan</a>
       <a href="#komoditas">Komoditas</a>
       <a href="#wilayah">Wilayah</a>
-      <a href="#metodologi">Data & metodologi</a>
+      <a href="#metodologi">Tentang data</a>
     </nav>
   </header>
 
@@ -25,8 +25,8 @@
     <section class="hero" id="ringkasan">
       <div>
         <p class="eyebrow">MONITOR HARGA PANGAN</p>
-        <h1>Melihat perubahan harga tanpa tenggelam dalam angka.</h1>
-        <p class="hero-copy">PanganLens merangkum harga pangan harian, perubahan terbaru, dan perbedaan harga antarprovinsi dari data yang telah melewati pemeriksaan kualitas.</p>
+        <h1>Pahami perubahan harga tanpa tenggelam dalam angka.</h1>
+        <p class="hero-copy">Mulai dari ringkasan nasional, pilih komoditas yang ingin dilihat, lalu bandingkan kondisinya antarprovinsi. Setiap angka yang tampil berasal dari data yang sudah melewati pemeriksaan kualitas.</p>
       </div>
       <aside class="freshness-card" aria-live="polite">
         <span class="status-dot" id="status-dot"></span>
@@ -38,18 +38,32 @@
       </aside>
     </section>
 
+    <section class="reading-guide" aria-label="Cara membaca dashboard">
+      <p class="reading-guide-title">Cara membaca PanganLens</p>
+      <div class="reading-steps">
+        <article><span>1</span><div><strong>Lihat ringkasannya</strong><p>Kenali komoditas yang bergerak paling besar dan cakupan data terbaru.</p></div></article>
+        <article><span>2</span><div><strong>Pilih komoditas</strong><p>Lihat harga terakhir dan arah perubahan dibanding observasi sebelumnya.</p></div></article>
+        <article><span>3</span><div><strong>Bandingkan wilayah</strong><p>Lihat provinsi yang harganya berada di atas atau di bawah rata-rata provinsi.</p></div></article>
+      </div>
+    </section>
+
     <section class="notice hidden" id="data-notice" role="status"></section>
 
+    <section class="section-intro" aria-labelledby="summary-title">
+      <div><p class="step-label">LANGKAH 1</p><h2 id="summary-title">Apa yang terjadi pada snapshot terbaru?</h2></div>
+      <p>Empat angka ini memberi konteks sebelum kamu masuk ke detail komoditas.</p>
+    </section>
+
     <section class="kpi-grid" aria-label="Indikator utama">
-      <article class="kpi-card"><p>Komoditas terpantau</p><strong id="commodity-count">0</strong><span>pada snapshot terbaru</span></article>
-      <article class="kpi-card"><p>Harga naik terbesar</p><strong id="top-rise">-</strong><span id="top-rise-detail">Belum tersedia</span></article>
-      <article class="kpi-card"><p>Harga turun terbesar</p><strong id="top-fall">-</strong><span id="top-fall-detail">Belum tersedia</span></article>
-      <article class="kpi-card"><p>Provinsi tercakup</p><strong id="province-count">0</strong><span>pada snapshot terbaru</span></article>
+      <article class="kpi-card"><p>Komoditas terpantau</p><strong id="commodity-count">0</strong><span>komoditas pada snapshot terbaru</span></article>
+      <article class="kpi-card kpi-up"><p>Kenaikan terbesar</p><strong id="top-rise">-</strong><span id="top-rise-detail">Belum tersedia</span></article>
+      <article class="kpi-card kpi-down"><p>Penurunan terbesar</p><strong id="top-fall">-</strong><span id="top-fall-detail">Belum tersedia</span></article>
+      <article class="kpi-card"><p>Provinsi tercakup</p><strong id="province-count">0</strong><span>provinsi pada snapshot terbaru</span></article>
     </section>
 
     <section class="panel" id="komoditas">
       <div class="section-heading">
-        <div><p class="eyebrow">KOMODITAS</p><h2>Harga nasional terbaru</h2></div>
+        <div><p class="step-label">LANGKAH 2</p><h2>Pilih komoditas yang ingin dipahami</h2><p class="section-explainer">Harga terakhir menunjukkan kondisi terbaru. Perubahan harian membandingkan dua observasi valid terakhir yang tersedia.</p></div>
         <label>Komoditas
           <select id="commodity-select" aria-label="Pilih komoditas"></select>
         </label>
@@ -61,28 +75,35 @@
           <p id="latest-price-meta">Pilih komoditas untuk melihat harga.</p>
         </div>
         <div>
-          <p class="card-label">Perubahan harian</p>
+          <p class="card-label">Perubahan terbaru</p>
           <strong class="large-number" id="daily-change">-</strong>
           <p id="daily-change-note">Dibanding observasi sebelumnya yang tersedia.</p>
         </div>
       </div>
+      <div class="chart-header">
+        <div><h3>Dua observasi terakhir</h3><p>Grafik ini sengaja sederhana. Fokusnya adalah arah perubahan, bukan pola jangka panjang.</p></div>
+        <div class="chart-legend" aria-label="Legenda grafik"><span class="legend-dot legend-neutral"></span><span>Harga nasional</span></div>
+      </div>
       <div class="trend-wrap">
-        <svg id="trend-chart" viewBox="0 0 800 260" role="img" aria-label="Grafik perubahan harga nasional"></svg>
-        <p class="empty-copy" id="trend-empty">Grafik akan muncul setelah snapshot produksi tersedia.</p>
+        <svg id="trend-chart" viewBox="0 0 800 260" role="img" aria-label="Perbandingan dua observasi harga nasional"></svg>
+        <p class="empty-copy" id="trend-empty">Perbandingan akan muncul setelah tersedia dua observasi valid.</p>
       </div>
     </section>
 
     <section class="panel" id="wilayah">
       <div class="section-heading">
-        <div><p class="eyebrow">WILAYAH</p><h2>Perbedaan harga antarprovinsi</h2></div>
-        <p class="section-note">Menampilkan provinsi dengan selisih terbesar dari rata-rata provinsi untuk komoditas yang dipilih.</p>
+        <div><p class="step-label">LANGKAH 3</p><h2>Di wilayah mana harga berbeda?</h2><p class="section-explainer">Bar menampilkan besar selisih dari rata-rata provinsi untuk komoditas yang dipilih. Panjang bar menunjukkan besarnya selisih, bukan tingkat harga absolut.</p></div>
+      </div>
+      <div class="region-legend" aria-label="Legenda perbandingan wilayah">
+        <span><i class="legend-dot legend-above"></i>Di atas rata-rata provinsi</span>
+        <span><i class="legend-dot legend-below"></i>Di bawah rata-rata provinsi</span>
       </div>
       <div class="region-list" id="region-list"></div>
       <p class="empty-copy" id="region-empty">Data wilayah akan muncul setelah snapshot produksi tersedia.</p>
     </section>
 
     <section class="methodology" id="metodologi">
-      <div><p class="eyebrow">DATA & METODOLOGI</p><h2>Angka yang tampil harus bisa ditelusuri.</h2></div>
+      <div><p class="eyebrow">TENTANG DATA</p><h2>Angka yang tampil harus bisa ditelusuri.</h2></div>
       <div class="method-grid">
         <article><h3>Sumber</h3><p>PIHPS Bank Indonesia melalui interface publik yang dipantau health check-nya. PanganLens tidak menyebut interface website tersebut sebagai API resmi.</p></article>
         <article><h3>Kualitas</h3><p>Dashboard hanya membaca data curated yang lolos pemeriksaan duplikasi, mapping, referential integrity, nilai harga, provenance, dan publish state.</p></article>

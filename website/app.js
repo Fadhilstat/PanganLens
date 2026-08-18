@@ -23,7 +23,7 @@ function render() {
   renderPublishState(data.publish_state);
 
   if (!national.length) {
-    showNotice("Data produksi belum dipublikasikan ke website. Struktur dashboard sudah siap dan akan terisi setelah snapshot BigQuery pertama lolos quality gate.");
+    showNotice("Data produksi belum dipublikasikan ke website. Dashboard akan terisi setelah snapshot BigQuery pertama lolos quality gate.");
   }
 
   const commodities = [...new Map(national.map(row => [row.commodity_id, row.commodity_name])).entries()];
@@ -96,7 +96,15 @@ function renderCommodityDetail() {
 
   document.getElementById("latest-price").textContent = formatPrice(row.price_idr);
   document.getElementById("latest-price-meta").textContent = `${row.commodity_name} · ${row.channel_name} · per ${row.unit_symbol}`;
-  document.getElementById("daily-change").textContent = finite(row.daily_change_pct) ? percent.format(Number(row.daily_change_pct)) : "Belum ada pembanding";
+  const changeElement = document.getElementById("daily-change");
+  if (finite(row.daily_change_pct)) {
+    const change = Number(row.daily_change_pct);
+    changeElement.textContent = percent.format(change);
+    changeElement.style.color = change > 0 ? "var(--red)" : change < 0 ? "var(--green)" : "var(--text)";
+  } else {
+    changeElement.textContent = "Belum ada pembanding";
+    changeElement.style.color = "var(--text)";
+  }
   renderTrend(row);
   renderRegions(provinces);
 }
@@ -124,21 +132,34 @@ function renderTrend(row) {
   const line = document.createElementNS("http://www.w3.org/2000/svg", "path");
   line.setAttribute("d", `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`);
   line.setAttribute("fill", "none");
-  line.setAttribute("stroke", "#356859");
+  line.setAttribute("stroke", "#4b6f8d");
   line.setAttribute("stroke-width", "4");
   line.setAttribute("stroke-linecap", "round");
   svg.appendChild(line);
   points.forEach((point, index) => {
     const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    circle.setAttribute("cx", point.x); circle.setAttribute("cy", point.y); circle.setAttribute("r", "7"); circle.setAttribute("fill", "#356859");
+    circle.setAttribute("cx", point.x);
+    circle.setAttribute("cy", point.y);
+    circle.setAttribute("r", "7");
+    circle.setAttribute("fill", "#4b6f8d");
     svg.appendChild(circle);
+
     const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    text.setAttribute("x", point.x); text.setAttribute("y", point.y - 18); text.setAttribute("text-anchor", "middle"); text.setAttribute("font-size", "14"); text.setAttribute("fill", "#202522");
+    text.setAttribute("x", point.x);
+    text.setAttribute("y", point.y - 18);
+    text.setAttribute("text-anchor", "middle");
+    text.setAttribute("font-size", "14");
+    text.setAttribute("fill", "#202522");
     text.textContent = formatPrice(point.value);
     svg.appendChild(text);
+
     const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    label.setAttribute("x", point.x); label.setAttribute("y", "248"); label.setAttribute("text-anchor", "middle"); label.setAttribute("font-size", "12"); label.setAttribute("fill", "#6b716d");
-    label.textContent = index === 0 ? "Observasi sebelumnya" : "Observasi terbaru";
+    label.setAttribute("x", point.x);
+    label.setAttribute("y", "248");
+    label.setAttribute("text-anchor", "middle");
+    label.setAttribute("font-size", "12");
+    label.setAttribute("fill", "#6b716d");
+    label.textContent = index === 0 ? "Sebelumnya" : "Terbaru";
     svg.appendChild(label);
   });
 }
@@ -156,12 +177,18 @@ function renderRegions(rows) {
   const maxGap = Math.max(...sorted.map(row => Math.abs(Number(row.price_gap_vs_province_average_pct || 0))), 0.01);
   for (const row of sorted) {
     const item = document.createElement("div");
-    item.className = "region-row";
     const gap = Number(row.price_gap_vs_province_average_pct || 0);
+    const directionClass = gap > 0 ? "above" : gap < 0 ? "below" : "same";
+    const directionLabel = gap > 0 ? "di atas rata-rata" : gap < 0 ? "di bawah rata-rata" : "setara rata-rata";
+    item.className = `region-row ${directionClass}`;
     item.innerHTML = `<div class="region-name"></div><div class="region-bar"><span></span></div><div class="region-value"></div>`;
     item.querySelector(".region-name").textContent = row.province_name;
     item.querySelector(".region-bar span").style.width = `${Math.min(100, Math.abs(gap) / maxGap * 100)}%`;
-    item.querySelector(".region-value").textContent = `${formatPrice(row.price_idr)} · ${percent.format(gap)}`;
+    const value = item.querySelector(".region-value");
+    value.textContent = `${formatPrice(row.price_idr)} · ${percent.format(gap)}`;
+    const note = document.createElement("small");
+    note.textContent = directionLabel;
+    value.appendChild(note);
     list.appendChild(item);
   }
 }
@@ -171,7 +198,14 @@ function formatPrice(value) {
   return Number.isFinite(number) ? rupiah.format(number) : "-";
 }
 
-function finite(value) { return value !== null && value !== undefined && Number.isFinite(Number(value)); }
-function showNotice(message) { const el = document.getElementById("data-notice"); el.textContent = message; el.classList.remove("hidden"); }
+function finite(value) {
+  return value !== null && value !== undefined && Number.isFinite(Number(value));
+}
+
+function showNotice(message) {
+  const el = document.getElementById("data-notice");
+  el.textContent = message;
+  el.classList.remove("hidden");
+}
 
 document.addEventListener("DOMContentLoaded", loadDashboard);
