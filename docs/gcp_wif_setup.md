@@ -1,12 +1,12 @@
-# Keyless Google Cloud authentication for PanganLens
+# Direct keyless Google Cloud authentication for PanganLens
 
-PanganLens uses GitHub Actions OpenID Connect with Google Cloud Workload Identity Federation. The repository does not require a long-lived service account JSON key.
+PanganLens uses GitHub Actions OpenID Connect with Google Cloud Workload Identity Federation. The read-only cloud workflows authenticate directly as the federated GitHub principal. They do not use a service account and do not require a long-lived JSON key.
 
-This setup is intentionally separate from the production ingestion schedule. First verify that the trust relationship and BigQuery access work through the manual `PanganLens GCP auth smoke test` workflow. Only after that check is green should scheduled ingestion be enabled.
+This setup remains separate from production ingestion. First verify direct WIF and read-only BigQuery access through the manual smoke test and readiness workflows. Production write access must be designed and approved separately rather than expanding this read-only identity.
 
 ## Fixed GitHub identity
 
-Use immutable GitHub identifiers in the provider condition where possible:
+Use immutable GitHub identifiers in the provider condition:
 
 - repository: `Fadhilstat/PanganLens`
 - repository ID: `1335081180`
@@ -14,21 +14,43 @@ Use immutable GitHub identifiers in the provider condition where possible:
 - repository owner ID: `179431732`
 - production branch: `refs/heads/main`
 
-GitHub exposes `repository_id`, `repository_owner_id`, `ref`, and other repository claims in its Actions OIDC token. The Google provider should map and check those values instead of trusting repository names alone.
+GitHub includes numeric repository and owner IDs in its Actions OIDC token. Google Cloud recommends numeric `*_id` claims instead of repository or owner names because the numeric IDs are unique and cannot be reused after a rename or deletion.
 
 ## Recommended Google Cloud objects
 
-Use dedicated resources for PanganLens rather than sharing a broad deployment identity:
+Use a dedicated pool and provider for PanganLens:
 
 - workload identity pool: `panganlens-github`
 - provider: `panganlens-repo`
-- service account: a dedicated PanganLens ingestion service account
 
-The service account should receive only the BigQuery permissions required by the pipeline. Do not grant Owner, Editor, or other broad project roles for convenience.
+The current read-only workflows do not need a Google Cloud service account. Direct WIF keeps the trust relationship smaller and removes service-account impersonation from this path.
 
-## Provider attribute mapping and condition
+## Step 1: select the Google Cloud project
 
-Create the GitHub OIDC provider with issuer `https://token.actions.githubusercontent.com/` and map at least these claims:
+Set the project that owns the PanganLens BigQuery datasets:
+
+```bash
+export GCP_PROJECT_ID="YOUR_PROJECT_ID"
+gcloud config set project "$GCP_PROJECT_ID"
+export GCP_PROJECT_NUMBER="$(gcloud projects describe "$GCP_PROJECT_ID" --format='value(projectNumber)')"
+```
+
+The provider resource name and principal-set IAM member must use the numeric Google Cloud project number.
+
+## Step 2: create the workload identity pool
+
+```bash
+gcloud iam workload-identity-pools create panganlens-github \
+  --project="$GCP_PROJECT_ID" \
+  --location="global" \
+  --display-name="PanganLens GitHub Actions"
+```
+
+If the pool already exists, inspect it instead of creating a second pool.
+
+## Step 3: create the GitHub OIDC provider
+
+Map only the claims used by PanganLens trust rules:
 
 ```text
 google.subject=assertion.sub
@@ -37,42 +59,62 @@ attribute.repository_owner_id=assertion.repository_owner_id
 attribute.ref=assertion.ref
 ```
 
-Use this provider condition:
-
-```text
-attribute.repository_id == "1335081180" &&
-attribute.repository_owner_id == "179431732" &&
-attribute.ref == "refs/heads/main"
-```
-
-The condition deliberately uses numeric repository and owner IDs so a rename cannot silently transfer trust to another repository name.
-
-A representative provider command is:
+Create the provider with the official GitHub Actions issuer and a condition that accepts only this repository, this owner, and `main`:
 
 ```bash
 gcloud iam workload-identity-pools providers create-oidc panganlens-repo \
+  --project="$GCP_PROJECT_ID" \
   --location="global" \
   --workload-identity-pool="panganlens-github" \
+  --display-name="PanganLens repository" \
   --issuer-uri="https://token.actions.githubusercontent.com/" \
   --attribute-mapping="google.subject=assertion.sub,attribute.repository_id=assertion.repository_id,attribute.repository_owner_id=assertion.repository_owner_id,attribute.ref=assertion.ref" \
   --attribute-condition='attribute.repository_id == "1335081180" && attribute.repository_owner_id == "179431732" && attribute.ref == "refs/heads/main"'
 ```
 
-Use the current Google Cloud documentation when creating the pool and provider because IAM command details can evolve.
+Do not weaken the condition to repository names only if authentication fails. Check the mapped claims, provider resource name, selected branch, and IAM bindings first.
 
-## Service account impersonation
+## Step 4: derive the direct WIF principal
 
-The GitHub principal needs permission to impersonate only the dedicated PanganLens service account. Grant `roles/iam.workloadIdentityUser` to the principal set that represents this repository identity. Keep resource permissions, such as BigQuery dataset access, on the dedicated service account.
+```bash
+export WIF_POOL_RESOURCE="projects/${GCP_PROJECT_NUMBER}/locations/global/workloadIdentityPools/panganlens-github"
+export PANGANLENS_GITHUB_PRINCIPAL="principalSet://iam.googleapis.com/${WIF_POOL_RESOURCE}/attribute.repository_id/1335081180"
+```
 
-Do not create or upload a service account key file.
+The provider already restricts the owner ID and `main` branch. The principal-set binding further limits resource access to the immutable PanganLens repository ID.
 
-## Required GitHub repository variables
+## Step 5: grant only query-job permission at project level
 
-Configure these repository variables, not secrets containing JSON credentials:
+The read-only workflows need permission to create BigQuery query jobs:
+
+```bash
+gcloud projects add-iam-policy-binding "$GCP_PROJECT_ID" \
+  --member="$PANGANLENS_GITHUB_PRINCIPAL" \
+  --role="roles/bigquery.jobUser"
+```
+
+Do not grant Owner, Editor, BigQuery Admin, or BigQuery User merely for convenience. `roles/bigquery.jobUser` is intentionally narrower for this path.
+
+## Step 6: grant dataset-level read access
+
+Grant `roles/bigquery.dataViewer` to the same principal only on PanganLens datasets required by the manual read-only workflows:
+
+- `panganlens_raw`
+- `panganlens_staging`
+- `panganlens_core`
+- `panganlens_mart`
+- `panganlens_ops`
+
+The readiness inspector reads metadata across all five datasets and queries `ops` and `mart`. The website snapshot exporter reads only `panganlens_mart`, but using the same read-only principal keeps the manual verification path simple.
+
+Prefer dataset-level access through BigQuery IAM instead of granting Data Viewer across a shared Google Cloud project. If the Google Cloud project is dedicated only to PanganLens, project-level Data Viewer is simpler but broader and should still be an explicit choice.
+
+## Step 7: store only two GitHub repository variables
+
+Configure these repository variables:
 
 - `GCP_PROJECT_ID`: Google Cloud project ID that owns the PanganLens datasets
-- `GCP_WIF_PROVIDER`: full provider resource name using the numeric Google Cloud project number
-- `GCP_SERVICE_ACCOUNT`: dedicated PanganLens service account email
+- `GCP_WIF_PROVIDER`: full provider resource name
 
 The provider resource has this shape:
 
@@ -80,23 +122,24 @@ The provider resource has this shape:
 projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/panganlens-github/providers/panganlens-repo
 ```
 
-The workflow preflight fails before requesting an OIDC token when any required variable is missing.
+`GCP_SERVICE_ACCOUNT` is not used by the direct WIF workflows and should not be required for this read-only path.
 
-## BigQuery permission boundary
+Do not create or upload a service account key file. Do not add `credentials_json` to GitHub secrets.
 
-Start from dataset-level access rather than project-wide BigQuery administration. The ingestion identity needs enough permission to run query jobs and read or write only the PanganLens datasets used by raw, staging, core, mart, and ops processing.
+## Step 8: verify in a strict order
 
-Before granting a role, compare the exact operations in the current pipeline against the current Google Cloud IAM documentation. If a narrower custom role is practical later, prefer it over expanding permissions.
+1. Run `PanganLens GCP auth smoke test` manually from `main`.
+2. Confirm the workflow reaches the BigQuery `SELECT 1` query using direct WIF.
+3. Run `PanganLens BigQuery readiness` manually from `main`.
+4. Read the `READY` or `BLOCKED` JSON evidence. A `BLOCKED` result is expected until schema, mappings, source evidence, publish state, and marts are complete.
+5. Only after the read-only path is proven should production bootstrap execution or ingestion write permissions be considered.
 
-## Verification sequence
+## Production write access stays separate
 
-1. Create the workload identity pool and GitHub provider.
-2. Apply the repository ID, owner ID, and `main` branch condition.
-3. Create the dedicated service account and configure Workload Identity User impersonation.
-4. Grant only the BigQuery access required by PanganLens.
-5. Add the three GitHub repository variables.
-6. Manually run `PanganLens GCP auth smoke test` from `main`.
-7. Confirm the workflow reaches the BigQuery `SELECT 1` check without any service account key.
-8. Only then proceed to scheduled production ingestion.
+The current direct WIF principal is deliberately read-only. Production ingestion will eventually need controlled writes to raw, staging, core, ops, and mart-related resources. Do not solve that by adding broad write roles to the read-only principal.
 
-If authentication fails, do not weaken the provider condition as a shortcut. Verify the provider resource name, mapped claims, repository variables, service account binding, and BigQuery permissions first.
+When production ingestion reaches that phase, create a separately reviewed write boundary with the minimum dataset roles required by the actual code path. Keep the source probe, readiness, and website snapshot workflows read-only.
+
+## Cost boundary
+
+The smoke query and readiness queries are small and bounded by the code where applicable, but BigQuery remains a metered service. Keep billing alerts and query controls enabled. If portfolio usage approaches the free-tier allowance, reduce or stop refreshes instead of silently accepting charges.
