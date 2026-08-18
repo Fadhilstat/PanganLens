@@ -162,7 +162,13 @@ USING (
 ) AS source
 ON target.state_name = source.state_name
 WHEN MATCHED
-  AND source.active_observation_date >= target.active_observation_date THEN
+  AND (
+    source.active_observation_date > target.active_observation_date
+    OR (
+      source.active_observation_date = target.active_observation_date
+      AND source.published_at >= target.published_at
+    )
+  ) THEN
   UPDATE SET
     active_run_id = source.active_run_id,
     active_observation_date = source.active_observation_date,
@@ -181,7 +187,13 @@ WHEN NOT MATCHED THEN
     source.published_at
   );
 """.strip()
-        return run_merge + "\n\n" + publish_merge
+        return (
+            "BEGIN TRANSACTION;\n"
+            + run_merge
+            + "\n\n"
+            + publish_merge
+            + "\nCOMMIT TRANSACTION;"
+        )
 
     @staticmethod
     def _query_parameters(outcome: PipelineOutcome) -> list[bigquery.ScalarQueryParameter]:
