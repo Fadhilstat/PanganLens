@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from panganlens.warehouse.promotion import (
+    EXPECTED_PRECHECK_NAMES,
     BigQueryPromotionRunner,
     PromotionBlockedError,
 )
@@ -50,18 +51,23 @@ def _sql_dir(tmp_path: Path) -> Path:
 
 def _pass_rows():
     return [
-        {"check_name": "duplicate_gate", "failure_count": 0, "status": "PASS"},
-        {"check_name": "numeric_gate", "failure_count": 0, "status": "PASS"},
+        {"check_name": name, "failure_count": 0, "status": "PASS"}
+        for name in sorted(EXPECTED_PRECHECK_NAMES)
     ]
 
 
-def test_ineligible_ingestion_never_queries_bigquery(tmp_path):
-    client = FakeClient(_pass_rows())
+def _runner(tmp_path: Path, rows):
+    client = FakeClient(rows)
     runner = BigQueryPromotionRunner(
         "panganlens-demo",
         client=client,
         sql_dir=_sql_dir(tmp_path),
     )
+    return runner, client
+
+
+def test_ineligible_ingestion_never_queries_bigquery(tmp_path):
+    runner, client = _runner(tmp_path, _pass_rows())
 
     with pytest.raises(PromotionBlockedError, match="not promotion eligible"):
         runner.promote("run-1", ingestion_eligible=False)
@@ -70,12 +76,7 @@ def test_ineligible_ingestion_never_queries_bigquery(tmp_path):
 
 
 def test_cross_capture_audit_runs_before_prechecks(tmp_path):
-    client = FakeClient(_pass_rows())
-    runner = BigQueryPromotionRunner(
-        "panganlens-demo",
-        client=client,
-        sql_dir=_sql_dir(tmp_path),
-    )
+    runner, client = _runner(tmp_path, _pass_rows())
 
     runner.promote("run-1", ingestion_eligible=True)
 
@@ -84,12 +85,7 @@ def test_cross_capture_audit_runs_before_prechecks(tmp_path):
 
 
 def test_empty_precheck_result_blocks_transaction(tmp_path):
-    client = FakeClient([])
-    runner = BigQueryPromotionRunner(
-        "panganlens-demo",
-        client=client,
-        sql_dir=_sql_dir(tmp_path),
-    )
+    runner, client = _runner(tmp_path, [])
 
     with pytest.raises(PromotionBlockedError, match="returned no results"):
         runner.promote("run-1", ingestion_eligible=True)
@@ -97,43 +93,77 @@ def test_empty_precheck_result_blocks_transaction(tmp_path):
     assert len(client.calls) == 2
 
 
-def test_nonzero_failure_count_blocks_even_when_status_says_pass(tmp_path):
-    rows = [{"check_name": "duplicate_gate", "failure_count": 1, "status": "PASS"}]
-    client = FakeClient(rows)
-    runner = BigQueryPromotionRunner(
-        "panganlens-demo",
-        client=client,
-        sql_dir=_sql_dir(tmp_path),
-    )
+def test_missing_precheck_blocks_transaction(tmp_path):
+    rows = _pass_rows()[1:]
+    runner, client = _runner(tmp_path, rows)
 
-    with pytest.raises(PromotionBlockedError, match="duplicate_gate"):
+    with pytest.raises(PromotionBlockedError, match="missing="):
+        runner.promote("run-1", ingestion_eligible=True)
+
+    assert len(client.calls) == 2
+
+
+def test_unknown_precheck_blocks_transaction(tmp_path):
+    rows = _pass_rows() + [
+        {"check_name": "unexpected_check", "failure_count": 0, "status": "PASS"}
+    ]
+    runner, _ = _runner(tmp_path, rows)
+
+    with pytest.raises(PromotionBlockedError, match="unknown=unexpected_check"):
+        runner.promote("run-1", ingestion_eligible=True)
+
+
+def test_duplicate_precheck_blocks_transaction(tmp_path):
+    rows = _pass_rows()
+    rows.append(dict(rows[0]))
+    runner, _ = _runner(tmp_path, rows)
+
+    with pytest.raises(PromotionBlockedError, match="duplicate="):
+        runner.promote("run-1", ingestion_eligible=True)
+
+
+def test_negative_failure_count_blocks_contract(tmp_path):
+    rows = _pass_rows()
+    rows[0] = {**rows[0], "failure_count": -1}
+    runner, _ = _runner(tmp_path, rows)
+
+    with pytest.raises(PromotionBlockedError, match="negative_failure_count="):
+        runner.promote("run-1", ingestion_eligible=True)
+
+
+def test_invalid_check_status_blocks_contract(tmp_path):
+    rows = _pass_rows()
+    rows[0] = {**rows[0], "status": "UNKNOWN"}
+    runner, _ = _runner(tmp_path, rows)
+
+    with pytest.raises(PromotionBlockedError, match="invalid_status="):
+        runner.promote("run-1", ingestion_eligible=True)
+
+
+def test_nonzero_failure_count_blocks_even_when_status_says_pass(tmp_path):
+    rows = _pass_rows()
+    rows[0] = {**rows[0], "failure_count": 1}
+    runner, client = _runner(tmp_path, rows)
+
+    with pytest.raises(PromotionBlockedError, match=rows[0]["check_name"]):
         runner.promote("run-1", ingestion_eligible=True)
 
     assert len(client.calls) == 2
 
 
 def test_failed_precheck_blocks_transaction(tmp_path):
-    rows = [{"check_name": "duplicate_gate", "failure_count": 1, "status": "FAIL"}]
-    client = FakeClient(rows)
-    runner = BigQueryPromotionRunner(
-        "panganlens-demo",
-        client=client,
-        sql_dir=_sql_dir(tmp_path),
-    )
+    rows = _pass_rows()
+    rows[0] = {**rows[0], "failure_count": 1, "status": "FAIL"}
+    runner, client = _runner(tmp_path, rows)
 
-    with pytest.raises(PromotionBlockedError, match="duplicate_gate"):
+    with pytest.raises(PromotionBlockedError, match=rows[0]["check_name"]):
         runner.promote("run-1", ingestion_eligible=True)
 
     assert len(client.calls) == 2
 
 
 def test_promotion_and_post_assertions_share_one_transaction(tmp_path):
-    client = FakeClient(_pass_rows())
-    runner = BigQueryPromotionRunner(
-        "panganlens-demo",
-        client=client,
-        sql_dir=_sql_dir(tmp_path),
-    )
+    runner, client = _runner(tmp_path, _pass_rows())
 
     result = runner.promote("run-1", ingestion_eligible=True)
 
@@ -149,12 +179,7 @@ def test_promotion_and_post_assertions_share_one_transaction(tmp_path):
 
 
 def test_run_id_is_parameterized_for_audit_checks_and_transaction(tmp_path):
-    client = FakeClient(_pass_rows())
-    runner = BigQueryPromotionRunner(
-        "panganlens-demo",
-        client=client,
-        sql_dir=_sql_dir(tmp_path),
-    )
+    runner, client = _runner(tmp_path, _pass_rows())
 
     runner.promote("run-20260818", ingestion_eligible=True)
 
@@ -163,6 +188,11 @@ def test_run_id_is_parameterized_for_audit_checks_and_transaction(tmp_path):
         parameter = job_config.query_parameters[0]
         assert parameter.name == "run_id"
         assert parameter.value == "run-20260818"
+
+
+def test_invalid_project_id_is_rejected_before_client_creation():
+    with pytest.raises(ValueError, match="project_id"):
+        BigQueryPromotionRunner("INVALID PROJECT")
 
 
 def test_promotion_scope_matches_lowercase_staging_contract():
@@ -174,6 +204,13 @@ def test_promotion_scope_matches_lowercase_staging_contract():
     assert "scope = 'NATIONAL'" not in sql
     assert "scope = 'REGION'" not in sql
     assert "scope = 'MARKET'" not in sql
+
+
+def test_promotion_batch_must_not_be_empty():
+    sql = Path("sql/010_promote_staging_to_core.sql").read_text(encoding="utf-8")
+
+    assert "SELECT COUNT(*) > 0" in sql
+    assert "promotion blocked: promotion batch is empty" in sql
 
 
 def test_cross_capture_audit_is_idempotent_and_logs_true_conflicts():
