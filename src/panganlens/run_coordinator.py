@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Protocol
 
 from panganlens.ingestion.orchestration import (
@@ -51,7 +51,7 @@ def execute_grid_run(
             staging_writer,
         )
     except Exception as exc:
-        terminal_time = finished_at or datetime.now(timezone.utc)
+        terminal_time = finished_at or datetime.now(UTC)
         outcome = PipelineOutcome(
             run_id=context.run_id,
             started_at=context.captured_at,
@@ -68,7 +68,7 @@ def execute_grid_run(
         state_manager.finalize(outcome)
         raise
 
-    terminal_time = finished_at or datetime.now(timezone.utc)
+    terminal_time = finished_at or datetime.now(UTC)
     return finalize_capture_run(
         summary,
         context,
