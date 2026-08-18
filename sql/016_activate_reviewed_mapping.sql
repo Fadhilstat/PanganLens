@@ -13,6 +13,9 @@ AS 'canonical_id must not be empty';
 ASSERT LENGTH(TRIM(@reviewed_by)) > 0
 AS 'reviewed_by must not be empty';
 
+ASSERT @reviewed_at <= CURRENT_TIMESTAMP()
+AS 'reviewed_at must not be in the future';
+
 ASSERT (
   SELECT COUNT(*) = 1
   FROM panganlens_ops.source_mapping_review_candidate AS candidate
@@ -21,6 +24,8 @@ ASSERT (
    AND capture.schema_fingerprint = candidate.source_schema_fingerprint
   WHERE candidate.candidate_fingerprint = @candidate_fingerprint
     AND candidate.review_status = 'REVIEW_REQUIRED'
+    AND capture.status = 'SUCCESS'
+    AND capture.payload_sha256 IS NOT NULL
 ) AS 'mapping candidate source evidence is missing or inconsistent';
 
 ASSERT (
