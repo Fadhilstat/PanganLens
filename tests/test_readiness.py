@@ -4,11 +4,17 @@ from google.api_core.exceptions import NotFound
 
 from panganlens.cost_guard import DEFAULT_QUERY_SAFETY_BYTES, DEFAULT_STORAGE_SAFETY_BYTES
 from panganlens.readiness import REQUIRED_DATASETS, REQUIRED_OBJECTS, BigQueryReadinessInspector
+from panganlens.schema_contract import WAREHOUSE_OBJECTS
 
 
 @dataclass
 class FakeDataset:
     storage_billing_model: str | None = "LOGICAL"
+
+
+@dataclass
+class FakeTable:
+    table_type: str
 
 
 class FakeRow:
@@ -37,6 +43,7 @@ class FakeClient:
         storage_rows=None,
         billing_models=None,
         query_estimates=None,
+        object_types=None,
     ):
         self.missing_datasets = set(missing_datasets or [])
         self.missing_objects = set(missing_objects or [])
@@ -51,6 +58,11 @@ class FakeClient:
         ]
         self.billing_models = billing_models or {}
         self.query_estimates = list(query_estimates or [10, 20, 30])
+        self.object_types = object_types or {}
+        self.expected_types = {
+            warehouse_object.qualified_name: warehouse_object.object_type
+            for warehouse_object in WAREHOUSE_OBJECTS
+        }
         self.queries = []
 
     def get_dataset(self, resource):
@@ -63,7 +75,8 @@ class FakeClient:
         key = ".".join(resource.split(".")[-2:])
         if key in self.missing_objects:
             raise NotFound("missing")
-        return object()
+        expected_type = self.expected_types[key]
+        return FakeTable(self.object_types.get(key, expected_type))
 
     def query(self, query, job_config=None, location=None):
         self.queries.append((query, job_config, location))
@@ -250,6 +263,30 @@ def test_readiness_checks_all_required_objects():
 
     object_checks = [check for check in report.checks if check.name.startswith("object:")]
     assert len(object_checks) == len(REQUIRED_OBJECTS)
+    assert any(
+        check.name == "object:panganlens_mart.vw_looker_latest_region_price"
+        for check in object_checks
+    )
+
+
+def test_readiness_blocks_wrong_object_type_before_running_queries():
+    client = FakeClient(
+        metrics=ready_metrics(),
+        object_types={"panganlens_mart.vw_looker_publish_state": "TABLE"},
+    )
+    inspector = BigQueryReadinessInspector("panganlens-demo", client=client)
+
+    report = inspector.inspect()
+
+    assert report.status == "BLOCKED"
+    check = next(
+        check
+        for check in report.checks
+        if check.name == "object:panganlens_mart.vw_looker_publish_state"
+    )
+    assert check.status == "FAIL"
+    assert "diharapkan VIEW" in check.detail
+    assert client.queries == []
 
 
 def test_readiness_rejects_invalid_project_and_query_ceiling():
