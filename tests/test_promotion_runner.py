@@ -244,3 +244,35 @@ def test_post_assertion_contract_contains_duplicate_numeric_and_reconciliation_g
     assert "national row missing from core" in sql
     assert "region row missing from core" in sql
     assert "market row missing from core" in sql
+
+
+def test_post_assertion_contract_enforces_dimension_and_fact_references():
+    sql = Path("sql/011_post_promotion_assertions.sql").read_text(encoding="utf-8")
+
+    assert "dimension primary key is not unique" in sql
+    assert "commodity foreign key is invalid" in sql
+    assert "market foreign key is invalid" in sql
+    assert "region parent reference is invalid" in sql
+    assert "national price has an unknown commodity" in sql
+    assert "national price has an unknown channel" in sql
+    assert "region price has an unknown commodity" in sql
+    assert "region price has an unknown channel" in sql
+    assert "region price has an unknown region" in sql
+    assert "market price has an unknown commodity" in sql
+    assert "market price has an unknown market" in sql
+
+
+def test_post_load_checks_cover_all_fact_foreign_keys():
+    sql = Path("sql/004_post_load_checks.sql").read_text(encoding="utf-8")
+
+    expected_checks = {
+        "national_prices_have_known_commodities",
+        "national_prices_have_known_channels",
+        "region_prices_have_known_commodities",
+        "region_prices_have_known_channels",
+        "region_prices_have_known_regions",
+        "market_prices_have_known_commodities",
+        "market_prices_have_known_markets",
+    }
+    for check_name in expected_checks:
+        assert check_name in sql
