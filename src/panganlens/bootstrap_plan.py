@@ -24,6 +24,7 @@ OPERATIONAL_SQL_FILES = (
     "011_post_promotion_assertions.sql",
     "013_audit_cross_capture_duplicates.sql",
     "016_activate_reviewed_mapping.sql",
+    "017_reject_mapping_candidate.sql",
 )
 
 
