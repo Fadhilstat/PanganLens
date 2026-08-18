@@ -20,6 +20,7 @@ def test_readiness_workflow_runs_read_only_cli_and_keeps_evidence():
     text = WORKFLOW.read_text(encoding="utf-8")
 
     assert "python -m panganlens.readiness_cli" in text
+    assert "set -euo pipefail" in text
     assert "bigquery-readiness.json" in text
     assert "actions/upload-artifact@v4" in text
     assert "retention-days: 7" in text
