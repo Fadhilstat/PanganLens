@@ -45,6 +45,11 @@ FROM (
 WHERE duplicate_rank = 1;
 
 ASSERT (
+  SELECT COUNT(*) > 0
+  FROM promotion_batch
+) AS 'promotion blocked: promotion batch is empty';
+
+ASSERT (
   SELECT COUNT(*) = COUNT(DISTINCT business_key_hash)
   FROM promotion_batch
 ) AS 'promotion blocked: deduplicated batch is not unique by business key';
