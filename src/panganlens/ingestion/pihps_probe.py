@@ -99,4 +99,6 @@ def _safe_evidence(capture: SourceRows) -> dict[str, object]:
 
     evidence = asdict(capture.evidence)
     evidence.pop("source_url", None)
+    evidence["requested_at"] = capture.evidence.requested_at.isoformat()
+    evidence["completed_at"] = capture.evidence.completed_at.isoformat()
     return evidence
