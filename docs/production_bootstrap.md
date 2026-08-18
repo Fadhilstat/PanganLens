@@ -56,6 +56,27 @@ Sebelum query pertama dijalankan, executor membangun ulang plan dari file saat i
 
 Eksekusi berhenti pada statement pertama yang gagal. Audit `SELECT` tetap dilewati. Tidak ada operational SQL, ingestion, promotion, mapping activation, atau publish pointer update di jalur bootstrap ini.
 
+## Verifikasi schema setelah apply
+
+Sesudah real apply dilakukan pada environment Google Cloud milik operator, schema dapat diperiksa tanpa membaca isi tabel:
+
+```bash
+python -m panganlens.bootstrap_verifier_cli \
+  --project-id YOUR_GCP_PROJECT_ID
+```
+
+Verifier hanya memakai metadata dataset dan object. Ia memastikan:
+
+- lima dataset PanganLens tersedia;
+- lokasi dataset sesuai `asia-southeast2`;
+- seluruh tabel dan view hasil bootstrap tersedia;
+- setiap object mempunyai tipe yang benar, sehingga logical view tidak diam-diam terganti menjadi table atau sebaliknya;
+- intermediate view `vw_looker_latest_region_price` ikut diperiksa karena menjadi dependency province map.
+
+Jika semua metadata sesuai, statusnya `SCHEMA_READY`. Status ini sengaja berbeda dari full production `READY`. `SCHEMA_READY` hanya berarti struktur BigQuery hasil bootstrap sudah lengkap dan berada di lokasi yang benar. Ia belum membuktikan bahwa mapping, source capture, data quality, cost guards, publish state, atau mart data sudah siap.
+
+Verifier tidak menjalankan query terhadap row data. Jika dataset atau object hilang, lokasi berbeda, tipe object salah, atau metadata tidak dapat dibaca, status menjadi `BLOCKED`.
+
 ## SQL yang tidak ikut bootstrap
 
 Pemeriksaan kualitas, map QA, promotion staging ke core, post-promotion assertions, duplicate audit, dan mapping activation atau rejection diklasifikasikan sebagai operational SQL. File tersebut tidak masuk schema bootstrap.
@@ -64,7 +85,7 @@ Contohnya, `008_source_mapping_registry.sql` dan `015_mapping_review_queue.sql` 
 
 ## Status produksi saat ini
 
-Adanya executor bukan berarti production bootstrap sudah dijalankan. Real apply tetap harus menunggu konfigurasi Google Cloud milik operator, direct WIF smoke test, dan pengecekan IAM yang benar. Repository tidak menyimpan credential dan tidak menambahkan hak write ke principal read-only yang sudah dirancang untuk readiness.
+Adanya executor dan verifier bukan berarti production bootstrap sudah dijalankan. Real apply tetap harus menunggu konfigurasi Google Cloud milik operator, direct WIF smoke test, dan pengecekan IAM yang benar. Repository tidak menyimpan credential dan tidak menambahkan hak write ke principal read-only yang sudah dirancang untuk readiness.
 
 Workflow produksi juga tetap tidak dijadwalkan. Setelah real bootstrap tersedia, mapping dan readiness masih harus lolos sebelum ingestion atau dashboard snapshot refresh boleh diaktifkan secara terjadwal.
 
@@ -72,6 +93,7 @@ Workflow produksi juga tetap tidak dijadwalkan. Setelah real bootstrap tersedia,
 
 - Default selalu plan-only.
 - Apply membutuhkan flag `--apply` dan exact reviewed `plan_sha256`.
+- Verifikasi schema bersifat metadata-only dan terpisah dari full production readiness.
 - Tidak ada credential di repository.
 - Tidak ada schedule produksi yang diaktifkan oleh bootstrap executor.
 - Tidak ada mapping otomatis atau fuzzy matching.
@@ -80,4 +102,4 @@ Workflow produksi juga tetap tidak dijadwalkan. Setelah real bootstrap tersedia,
 
 ## Referensi resmi yang diverifikasi
 
-Dokumentasi Google Cloud untuk BigQuery DDL dan Python client diverifikasi masih dapat diakses pada 18 Agustus 2026. Executor mengikuti bentuk DDL BigQuery yang terdokumentasi dan menjalankan statement melalui `Client.query(...).result()` dengan Standard SQL.
+Dokumentasi Google Cloud untuk BigQuery DDL, metadata tabel/view, dan Python client diverifikasi masih dapat diakses pada 18 Agustus 2026. Executor mengikuti bentuk DDL BigQuery yang terdokumentasi. Verifier menggunakan metadata object dan tidak membutuhkan query terhadap isi tabel untuk membedakan struktur table dan view.
