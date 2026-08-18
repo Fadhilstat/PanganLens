@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 WORKFLOW = Path(".github/workflows/gcp_auth_smoke.yml")
 SETUP_DOC = Path("docs/gcp_wif_setup.md")
 
