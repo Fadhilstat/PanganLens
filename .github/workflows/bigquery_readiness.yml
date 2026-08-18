@@ -1,0 +1,73 @@
+name: PanganLens BigQuery readiness
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: panganlens-bigquery-readiness-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      GCP_WIF_PROVIDER: ${{ vars.GCP_WIF_PROVIDER }}
+      GCP_SERVICE_ACCOUNT: ${{ vars.GCP_SERVICE_ACCOUNT }}
+      BIGQUERY_LOCATION: asia-southeast2
+    steps:
+      - name: Validate required repository variables
+        run: |
+          set -eu
+          missing=""
+          for name in GCP_PROJECT_ID GCP_WIF_PROVIDER GCP_SERVICE_ACCOUNT; do
+            eval "value=\${$name:-}"
+            if [ -z "$value" ]; then
+              missing="$missing $name"
+            fi
+          done
+          if [ -n "$missing" ]; then
+            echo "Missing required repository variables:$missing" >&2
+            exit 1
+          fi
+
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - id: auth
+        name: Authenticate to Google Cloud with Workload Identity Federation
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+          create_credentials_file: true
+          export_environment_variables: true
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install project
+        run: python -m pip install -e .
+
+      - name: Check BigQuery production readiness
+        run: |
+          python -m panganlens.readiness_cli \
+            --project-id "$GCP_PROJECT_ID" \
+            --location "$BIGQUERY_LOCATION" \
+            | tee bigquery-readiness.json
+
+      - name: Upload readiness evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: panganlens-bigquery-readiness
+          path: bigquery-readiness.json
+          if-no-files-found: ignore
+          retention-days: 7
