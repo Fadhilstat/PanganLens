@@ -22,6 +22,34 @@ from panganlens.warehouse.loader import PROJECT_ID_PATTERN, SHA256_PATTERN
 
 ACTIVATION_SQL_RESOURCE = "016_activate_reviewed_mapping.sql"
 REJECTION_SQL_RESOURCE = "017_reject_mapping_candidate.sql"
+CANONICAL_LOOKUP_MAXIMUM_BYTES_BILLED = 25_000_000
+
+CANONICAL_LOOKUP_SPECS = {
+    "commodity": (
+        "commodity",
+        "commodity_id",
+        "commodity_name",
+        "TO_JSON_STRING(STRUCT(category_id, unit_id, display_order))",
+    ),
+    "channel": (
+        "market_channel",
+        "channel_id",
+        "channel_name",
+        "TO_JSON_STRING(STRUCT(source_price_type_id))",
+    ),
+    "region": (
+        "region",
+        "region_id",
+        "region_name",
+        "TO_JSON_STRING(STRUCT(parent_region_id, region_level, official_code))",
+    ),
+    "market": (
+        "market",
+        "market_id",
+        "market_name",
+        "TO_JSON_STRING(STRUCT(region_id, channel_id))",
+    ),
+}
 
 
 class MappingOperatorError(RuntimeError):
@@ -29,7 +57,7 @@ class MappingOperatorError(RuntimeError):
 
 
 class BigQueryMappingOperator:
-    """List, generate, approve, and reject mappings through explicit human review."""
+    """Operate reviewed mappings while keeping identity decisions human-controlled."""
 
     def __init__(
         self,
@@ -73,6 +101,34 @@ LIMIT @limit
             query_parameters=[bigquery.ScalarQueryParameter("limit", "INT64", limit)]
         )
         rows = self.client.query(query, job_config=config, location=self.location).result()
+        return [dict(row.items()) for row in rows]
+
+    def list_canonical_options(
+        self,
+        entity_type: str,
+        search: str = "",
+        limit: int = 50,
+    ) -> list[dict[str, Any]]:
+        if entity_type not in CANONICAL_LOOKUP_SPECS:
+            raise ValueError("entity_type is not supported")
+        if not 1 <= limit <= 200:
+            raise ValueError("limit must be between 1 and 200")
+        search_text = search.strip()
+        if len(search_text) > 100:
+            raise ValueError("search must not exceed 100 characters")
+
+        config = bigquery.QueryJobConfig(
+            maximum_bytes_billed=CANONICAL_LOOKUP_MAXIMUM_BYTES_BILLED,
+            query_parameters=[
+                bigquery.ScalarQueryParameter("search", "STRING", search_text),
+                bigquery.ScalarQueryParameter("limit", "INT64", limit),
+            ],
+        )
+        rows = self.client.query(
+            _canonical_lookup_sql(self.project_id, entity_type),
+            job_config=config,
+            location=self.location,
+        ).result()
         return [dict(row.items()) for row in rows]
 
     def generate_from_capture(
@@ -246,6 +302,25 @@ WHERE raw.capture_id = @capture_id
             params = json.loads(params)
         row["request_parameters"] = dict(params)
         return row
+
+
+def _canonical_lookup_sql(project_id: str, entity_type: str) -> str:
+    table, id_column, name_column, context_expression = CANONICAL_LOOKUP_SPECS[entity_type]
+    return f"""
+SELECT
+  {id_column} AS canonical_id,
+  {name_column} AS canonical_name,
+  {context_expression} AS context_json
+FROM `{project_id}.panganlens_core.{table}`
+WHERE is_active = TRUE
+  AND (
+    @search = ''
+    OR STRPOS(LOWER({name_column}), LOWER(@search)) > 0
+    OR STRPOS(LOWER({id_column}), LOWER(@search)) > 0
+  )
+ORDER BY canonical_name, canonical_id
+LIMIT @limit
+"""
 
 
 def _validate_review_metadata(
