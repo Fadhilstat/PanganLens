@@ -4,7 +4,12 @@ from pathlib import Path
 import pytest
 
 from panganlens.bootstrap_executor import build_bootstrap_execution_plan
-from panganlens.schema_contract import REQUIRED_DATASETS, WAREHOUSE_OBJECTS, WarehouseObject
+from panganlens.schema_contract import (
+    REQUIRED_DATASETS,
+    WAREHOUSE_LOCATION,
+    WAREHOUSE_OBJECTS,
+    WarehouseObject,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -27,6 +32,7 @@ VIEW_TARGET = re.compile(
 def test_schema_contract_is_unique_and_uses_required_datasets():
     qualified_names = [obj.qualified_name for obj in WAREHOUSE_OBJECTS]
 
+    assert WAREHOUSE_LOCATION == "asia-southeast2"
     assert len(qualified_names) == len(set(qualified_names))
     assert set(REQUIRED_DATASETS) == {
         "panganlens_raw",
