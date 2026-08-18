@@ -15,6 +15,8 @@ from panganlens.warehouse.staging_writer import (
     StagingConflictError,
 )
 
+SOURCE_NAME = "PIHPS Bank Indonesia public website interface"
+
 
 @dataclass(frozen=True, slots=True)
 class IngestionContext:
@@ -145,6 +147,13 @@ def _raw_record(source: SourceRows, context: IngestionContext) -> RawCaptureReco
         payload_text=source.payload_text,
         payload_bytes=evidence.payload_bytes,
         payload_sha256=evidence.payload_sha256,
+        source_name=SOURCE_NAME,
+        source_url=evidence.source_url,
+        source_host=evidence.source_host,
+        content_type=evidence.content_type,
+        requested_at=evidence.requested_at,
+        completed_at=evidence.completed_at,
+        http_status=evidence.http_status,
     )
 
 
