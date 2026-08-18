@@ -4,12 +4,13 @@ from google.api_core.exceptions import NotFound
 
 from panganlens.cost_guard import DEFAULT_QUERY_SAFETY_BYTES, DEFAULT_STORAGE_SAFETY_BYTES
 from panganlens.readiness import REQUIRED_DATASETS, REQUIRED_OBJECTS, BigQueryReadinessInspector
-from panganlens.schema_contract import WAREHOUSE_OBJECTS
+from panganlens.schema_contract import WAREHOUSE_LOCATION, WAREHOUSE_OBJECTS
 
 
 @dataclass
 class FakeDataset:
     storage_billing_model: str | None = "LOGICAL"
+    location: str = WAREHOUSE_LOCATION
 
 
 @dataclass
@@ -44,6 +45,7 @@ class FakeClient:
         billing_models=None,
         query_estimates=None,
         object_types=None,
+        dataset_locations=None,
     ):
         self.missing_datasets = set(missing_datasets or [])
         self.missing_objects = set(missing_objects or [])
@@ -59,6 +61,7 @@ class FakeClient:
         self.billing_models = billing_models or {}
         self.query_estimates = list(query_estimates or [10, 20, 30])
         self.object_types = object_types or {}
+        self.dataset_locations = dataset_locations or {}
         self.expected_types = {
             warehouse_object.qualified_name: warehouse_object.object_type
             for warehouse_object in WAREHOUSE_OBJECTS
@@ -69,7 +72,10 @@ class FakeClient:
         dataset = resource.split(".")[-1]
         if dataset in self.missing_datasets:
             raise NotFound("missing")
-        return FakeDataset(self.billing_models.get(dataset, "LOGICAL"))
+        return FakeDataset(
+            self.billing_models.get(dataset, "LOGICAL"),
+            self.dataset_locations.get(dataset, WAREHOUSE_LOCATION),
+        )
 
     def get_table(self, resource):
         key = ".".join(resource.split(".")[-2:])
@@ -115,7 +121,7 @@ def test_readiness_reports_ready_when_all_gates_pass():
     storage_query, storage_config, storage_location = client.queries[0]
     assert "INFORMATION_SCHEMA.TABLE_STORAGE" in storage_query
     assert storage_config.maximum_bytes_billed == 50_000_000
-    assert storage_location == "asia-southeast2"
+    assert storage_location == WAREHOUSE_LOCATION
 
     dry_runs = client.queries[1:4]
     assert all(config.dry_run for _, config, _ in dry_runs)
@@ -128,7 +134,7 @@ def test_readiness_reports_ready_when_all_gates_pass():
     assert "duplicate_active_mapping_count" in query
     assert "vw_looker_province_map" in query
     assert config.maximum_bytes_billed == 50_000_000
-    assert location == "asia-southeast2"
+    assert location == WAREHOUSE_LOCATION
     assert report.metrics["storage_billable_bytes"] == 0
     assert report.metrics["dashboard_query_total_bytes_processed"] == 60
 
@@ -255,6 +261,43 @@ def test_readiness_stops_before_queries_when_metadata_is_missing():
     assert client.queries == []
 
 
+def test_readiness_blocks_wrong_dataset_location_before_queries():
+    client = FakeClient(
+        metrics=ready_metrics(),
+        dataset_locations={"panganlens_core": "US"},
+    )
+    inspector = BigQueryReadinessInspector("panganlens-demo", client=client)
+
+    report = inspector.inspect()
+
+    assert report.status == "BLOCKED"
+    check = next(
+        check for check in report.checks if check.name == "dataset:panganlens_core"
+    )
+    assert check.status == "FAIL"
+    assert "US" in check.detail
+    assert WAREHOUSE_LOCATION in check.detail
+    assert client.queries == []
+
+
+def test_readiness_blocks_blank_dataset_location_before_queries():
+    client = FakeClient(
+        metrics=ready_metrics(),
+        dataset_locations={"panganlens_raw": ""},
+    )
+    inspector = BigQueryReadinessInspector("panganlens-demo", client=client)
+
+    report = inspector.inspect()
+
+    assert report.status == "BLOCKED"
+    check = next(
+        check for check in report.checks if check.name == "dataset:panganlens_raw"
+    )
+    assert check.status == "FAIL"
+    assert "tidak diketahui" in check.detail
+    assert client.queries == []
+
+
 def test_readiness_checks_all_required_objects():
     client = FakeClient(metrics=ready_metrics())
     inspector = BigQueryReadinessInspector("panganlens-demo", client=client)
@@ -289,13 +332,24 @@ def test_readiness_blocks_wrong_object_type_before_running_queries():
     assert client.queries == []
 
 
-def test_readiness_rejects_invalid_project_and_query_ceiling():
+def test_readiness_rejects_invalid_project_location_and_query_ceiling():
     try:
         BigQueryReadinessInspector("Bad Project", client=FakeClient())
     except ValueError as exc:
         assert "project_id" in str(exc)
     else:
         raise AssertionError("invalid project ID should fail")
+
+    try:
+        BigQueryReadinessInspector(
+            "panganlens-demo",
+            client=FakeClient(),
+            location=" ",
+        )
+    except ValueError as exc:
+        assert "location" in str(exc)
+    else:
+        raise AssertionError("empty location should fail")
 
     try:
         BigQueryReadinessInspector(
