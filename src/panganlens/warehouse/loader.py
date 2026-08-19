@@ -11,6 +11,8 @@ from datetime import datetime
 
 from google.cloud import bigquery
 
+from panganlens.schema_contract import WAREHOUSE_LOCATION
+
 PROJECT_ID_PATTERN = re.compile(r"^[a-z][a-z0-9-]{4,28}[a-z0-9]$")
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 
@@ -83,7 +85,7 @@ class BigQueryWarehouse:
         self,
         project_id: str,
         client: bigquery.Client | None = None,
-        location: str = "asia-southeast2",
+        location: str = WAREHOUSE_LOCATION,
     ) -> None:
         if not PROJECT_ID_PATTERN.fullmatch(project_id):
             raise ValueError("project_id is not a valid Google Cloud project ID")
