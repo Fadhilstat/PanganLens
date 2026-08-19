@@ -1,6 +1,8 @@
 from pathlib import Path
 
-UPLOAD_PIN = "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
+UPLOAD_PIN = (
+    "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
+)
 WORKFLOWS = {
     "auth_smoke": Path(".github/workflows/gcp_auth_smoke.yml"),
     "readiness": Path(".github/workflows/bigquery_readiness.yml"),
@@ -27,7 +29,9 @@ def test_readiness_and_schema_evidence_survive_blocked_checks():
     schema = WORKFLOWS["schema_verification"].read_text(encoding="utf-8")
 
     assert "Build readiness activation evidence\n        if: always()" in readiness
-    assert "Build schema verification activation evidence\n        if: always()" in schema
+    assert (
+        "Build schema verification activation evidence\n        if: always()" in schema
+    )
     assert "bigquery-readiness-evidence.json" in readiness
     assert "bootstrap-schema-verification-evidence.json" in schema
 
