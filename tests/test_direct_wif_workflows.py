@@ -1,6 +1,7 @@
 from pathlib import Path
 
 AUTH_PIN = "google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093"
+CLOUD_VALIDATION = "python -m panganlens.cloud_config_cli"
 WORKFLOWS = (
     Path(".github/workflows/gcp_auth_smoke.yml"),
     Path(".github/workflows/bigquery_readiness.yml"),
@@ -26,6 +27,16 @@ def test_cloud_access_is_restricted_to_main_for_manual_bigquery_actions():
     assert "github.ref == 'refs/heads/main'" in auth_smoke
     assert "github.ref == 'refs/heads/main'" in readiness
     assert 'GITHUB_REF" != "refs/heads/main"' in dashboard
+
+
+def test_manual_cloud_workflows_validate_variables_before_authentication():
+    auth_smoke = WORKFLOWS[0].read_text(encoding="utf-8")
+    readiness = WORKFLOWS[1].read_text(encoding="utf-8")
+
+    assert CLOUD_VALIDATION in auth_smoke
+    assert CLOUD_VALIDATION in readiness
+    assert auth_smoke.index(CLOUD_VALIDATION) < auth_smoke.index("- id: auth")
+    assert readiness.index(CLOUD_VALIDATION) < readiness.index("- id: auth")
 
 
 def test_cloud_workflows_do_not_override_central_warehouse_location():
