@@ -16,6 +16,14 @@ Use immutable GitHub identifiers in the provider condition:
 
 GitHub includes numeric repository and owner IDs in its Actions OIDC token. Google Cloud recommends numeric `*_id` claims instead of repository or owner names because the numeric IDs are unique and cannot be reused after a rename or deletion.
 
+Cloud access is also limited to the reviewed workflow files below:
+
+- `Fadhilstat/PanganLens/.github/workflows/gcp_auth_smoke.yml@refs/heads/main`
+- `Fadhilstat/PanganLens/.github/workflows/bigquery_readiness.yml@refs/heads/main`
+- `Fadhilstat/PanganLens/.github/workflows/dashboard_pages.yml@refs/heads/main`
+
+The `workflow_ref` restriction matters because repository and branch checks alone would still allow a newly added workflow on `main` to request a GitHub OIDC token. Any future cloud-enabled workflow must be reviewed first and then added deliberately to the provider condition.
+
 ## Recommended Google Cloud objects
 
 Use a dedicated pool and provider for PanganLens:
@@ -57,9 +65,10 @@ google.subject=assertion.sub
 attribute.repository_id=assertion.repository_id
 attribute.repository_owner_id=assertion.repository_owner_id
 attribute.ref=assertion.ref
+attribute.workflow_ref=assertion.workflow_ref
 ```
 
-Create the provider with the official GitHub Actions issuer and a condition that accepts only this repository, this owner, and `main`:
+Create the provider with the official GitHub Actions issuer and a condition that accepts only this repository, this owner, `main`, and the reviewed workflow files:
 
 ```bash
 gcloud iam workload-identity-pools providers create-oidc panganlens-repo \
@@ -68,11 +77,13 @@ gcloud iam workload-identity-pools providers create-oidc panganlens-repo \
   --workload-identity-pool="panganlens-github" \
   --display-name="PanganLens repository" \
   --issuer-uri="https://token.actions.githubusercontent.com/" \
-  --attribute-mapping="google.subject=assertion.sub,attribute.repository_id=assertion.repository_id,attribute.repository_owner_id=assertion.repository_owner_id,attribute.ref=assertion.ref" \
-  --attribute-condition='attribute.repository_id == "1335081180" && attribute.repository_owner_id == "179431732" && attribute.ref == "refs/heads/main"'
+  --attribute-mapping="google.subject=assertion.sub,attribute.repository_id=assertion.repository_id,attribute.repository_owner_id=assertion.repository_owner_id,attribute.ref=assertion.ref,attribute.workflow_ref=assertion.workflow_ref" \
+  --attribute-condition='attribute.repository_id == "1335081180" && attribute.repository_owner_id == "179431732" && attribute.ref == "refs/heads/main" && (attribute.workflow_ref == "Fadhilstat/PanganLens/.github/workflows/gcp_auth_smoke.yml@refs/heads/main" || attribute.workflow_ref == "Fadhilstat/PanganLens/.github/workflows/bigquery_readiness.yml@refs/heads/main" || attribute.workflow_ref == "Fadhilstat/PanganLens/.github/workflows/dashboard_pages.yml@refs/heads/main")'
 ```
 
-Do not weaken the condition to repository names only if authentication fails. Check the mapped claims, provider resource name, selected branch, and IAM bindings first.
+Do not weaken the condition to repository names only, remove the branch restriction, or accept every workflow in the repository if authentication fails. Check the mapped claims, provider resource name, selected branch, workflow reference, and IAM bindings first.
+
+If the provider already exists, update its attribute mapping and condition deliberately instead of creating a second provider. Review the resulting provider configuration before running the auth smoke test.
 
 ## Step 4: derive the direct WIF principal
 
@@ -81,7 +92,7 @@ export WIF_POOL_RESOURCE="projects/${GCP_PROJECT_NUMBER}/locations/global/worklo
 export PANGANLENS_GITHUB_PRINCIPAL="principalSet://iam.googleapis.com/${WIF_POOL_RESOURCE}/attribute.repository_id/1335081180"
 ```
 
-The provider already restricts the owner ID and `main` branch. The principal-set binding further limits resource access to the immutable PanganLens repository ID.
+The provider already restricts the owner ID, `main` branch, and reviewed workflow files. The principal-set binding further limits resource access to the immutable PanganLens repository ID.
 
 ## Step 5: grant only query-job permission at project level
 
@@ -128,11 +139,14 @@ Do not create or upload a service account key file. Do not add `credentials_json
 
 ## Step 8: verify in a strict order
 
-1. Run `PanganLens GCP auth smoke test` manually from `main`.
-2. Confirm the workflow reaches the BigQuery `SELECT 1` query using direct WIF.
-3. Run `PanganLens BigQuery readiness` manually from `main`.
-4. Read the `READY` or `BLOCKED` JSON evidence. A `BLOCKED` result is expected until schema, mappings, source evidence, publish state, and marts are complete.
-5. Only after the read-only path is proven should production bootstrap execution or ingestion write permissions be considered.
+1. Inspect the provider and confirm the repository ID, owner ID, `main` ref, and three reviewed `workflow_ref` values are present in the effective condition.
+2. Run `PanganLens GCP auth smoke test` manually from `main`.
+3. Confirm the workflow reaches the BigQuery `SELECT 1` query using direct WIF.
+4. Run `PanganLens BigQuery readiness` manually from `main`.
+5. Read the `READY` or `BLOCKED` JSON evidence. A `BLOCKED` result is expected until schema, mappings, source evidence, publish state, and marts are complete.
+6. Only after the read-only path is proven should production bootstrap execution or ingestion write permissions be considered.
+
+A new or renamed workflow is expected to fail WIF until the provider condition is intentionally reviewed and updated. Treat that failure as a security control, not as a reason to broaden the trust condition.
 
 ## Production write access stays separate
 
@@ -146,9 +160,10 @@ The smoke query and readiness queries are small and bounded by the code where ap
 
 ## Verified references
 
-These primary sources were checked live on 18 August 2026 before this onboarding was updated:
+These primary sources were checked live on 19 August 2026 before this onboarding was updated:
 
 - Google Cloud, Workload Identity Federation with deployment pipelines: https://cloud.google.com/iam/docs/workload-identity-federation-with-deployment-pipelines
 - Google Cloud SDK, `gcloud iam workload-identity-pools providers create-oidc`: https://cloud.google.com/sdk/gcloud/reference/iam/workload-identity-pools/providers/create-oidc
 - Google Cloud, BigQuery IAM roles and permissions: https://cloud.google.com/bigquery/docs/access-control
+- GitHub Docs, OpenID Connect reference and token claims: https://docs.github.com/actions/reference/security/oidc
 - `google-github-actions/auth`, direct Workload Identity Federation setup: https://github.com/google-github-actions/auth#direct-wif
