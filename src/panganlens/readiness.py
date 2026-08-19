@@ -25,6 +25,7 @@ from panganlens.warehouse.loader import PROJECT_ID_PATTERN
 
 DEFAULT_LOCATION = WAREHOUSE_LOCATION
 DEFAULT_MAXIMUM_BYTES_BILLED = 50_000_000
+DEFAULT_MAX_SOURCE_CAPTURE_AGE_HOURS = 72
 REQUIRED_OBJECTS = tuple((obj.dataset, obj.name) for obj in WAREHOUSE_OBJECTS)
 
 
@@ -60,6 +61,7 @@ class BigQueryReadinessInspector:
         maximum_bytes_billed: int = DEFAULT_MAXIMUM_BYTES_BILLED,
         storage_safety_bytes: int = DEFAULT_STORAGE_SAFETY_BYTES,
         query_safety_bytes: int = DEFAULT_QUERY_SAFETY_BYTES,
+        max_source_capture_age_hours: int = DEFAULT_MAX_SOURCE_CAPTURE_AGE_HOURS,
     ) -> None:
         if not PROJECT_ID_PATTERN.fullmatch(project_id):
             raise ValueError("project_id is not a valid Google Cloud project ID")
@@ -71,11 +73,14 @@ class BigQueryReadinessInspector:
             raise ValueError("storage_safety_bytes must be positive")
         if query_safety_bytes <= 0:
             raise ValueError("query_safety_bytes must be positive")
+        if max_source_capture_age_hours <= 0:
+            raise ValueError("max_source_capture_age_hours must be positive")
         self.project_id = project_id
         self.location = location
         self.maximum_bytes_billed = maximum_bytes_billed
         self.storage_safety_bytes = storage_safety_bytes
         self.query_safety_bytes = query_safety_bytes
+        self.max_source_capture_age_hours = max_source_capture_age_hours
         self.client = client or bigquery.Client(project=project_id, location=location)
 
     def inspect(self) -> ReadinessReport:
@@ -297,10 +302,11 @@ class BigQueryReadinessInspector:
         rows = list(job.result())
         if len(rows) != 1:
             raise RuntimeError("readiness query must return exactly one row")
-        return dict(rows[0].items())
+        metrics = dict(rows[0].items())
+        metrics["source_capture_max_age_hours"] = self.max_source_capture_age_hours
+        return metrics
 
-    @staticmethod
-    def _operational_checks(metrics: dict[str, Any]) -> list[ReadinessCheck]:
+    def _operational_checks(self, metrics: dict[str, Any]) -> list[ReadinessCheck]:
         active_mappings = int(metrics.get("active_mapping_count") or 0)
         commodity_mappings = int(metrics.get("active_commodity_mapping_count") or 0)
         channel_mappings = int(metrics.get("active_channel_mapping_count") or 0)
@@ -308,10 +314,36 @@ class BigQueryReadinessInspector:
         duplicate_mappings = int(metrics.get("duplicate_active_mapping_count") or 0)
         pending_reviews = int(metrics.get("pending_review_count") or 0)
         successful_captures = int(metrics.get("successful_capture_count") or 0)
+        latest_capture_at = metrics.get("latest_successful_capture_at")
+        latest_capture_age_value = metrics.get("latest_successful_capture_age_hours")
+        latest_capture_age = (
+            int(latest_capture_age_value)
+            if latest_capture_age_value is not None
+            else None
+        )
+        fresh_capture = (
+            latest_capture_age is not None
+            and 0 <= latest_capture_age <= self.max_source_capture_age_hours
+        )
         valid_publish_rows = int(metrics.get("valid_publish_state_count") or 0)
         national_rows = int(metrics.get("national_dashboard_row_count") or 0)
         region_rows = int(metrics.get("region_dashboard_row_count") or 0)
         province_rows = int(metrics.get("province_dashboard_row_count") or 0)
+
+        if latest_capture_age is None:
+            capture_freshness_detail = (
+                "Capture PIHPS sukses belum memiliki completed_at yang dapat dipakai"
+            )
+        elif latest_capture_age < 0:
+            capture_freshness_detail = (
+                f"Capture PIHPS terbaru {latest_capture_at or 'tidak diketahui'} memiliki "
+                f"umur {latest_capture_age} jam; timestamp berada di masa depan"
+            )
+        else:
+            capture_freshness_detail = (
+                f"Capture PIHPS terbaru {latest_capture_at or 'tidak diketahui'} berumur "
+                f"{latest_capture_age} jam; batas {self.max_source_capture_age_hours} jam"
+            )
 
         return [
             ReadinessCheck(
@@ -350,6 +382,11 @@ class BigQueryReadinessInspector:
                 f"{successful_captures} capture sukses tersimpan",
             ),
             ReadinessCheck(
+                "source:fresh_capture",
+                "PASS" if fresh_capture else "FAIL",
+                capture_freshness_detail,
+            ),
+            ReadinessCheck(
                 "publish:public_dashboard",
                 "PASS" if valid_publish_rows == 1 else "FAIL",
                 f"{valid_publish_rows} publish pointer valid",
@@ -386,6 +423,14 @@ WITH active_mapping AS (
   WHERE mapping_status = 'ACTIVE'
     AND valid_from <= CURRENT_TIMESTAMP()
     AND (valid_to IS NULL OR valid_to > CURRENT_TIMESTAMP())
+),
+valid_source_capture AS (
+  SELECT completed_at
+  FROM `{project_id}.panganlens_ops.source_capture`
+  WHERE status = 'SUCCESS'
+    AND source_host = 'www.bi.go.id'
+    AND payload_sha256 IS NOT NULL
+    AND completed_at IS NOT NULL
 )
 SELECT
   (SELECT COUNT(*) FROM active_mapping) AS active_mapping_count,
@@ -420,13 +465,13 @@ SELECT
     SELECT COUNT(*)
     FROM `{project_id}.panganlens_ops.vw_mapping_review_queue`
   ) AS pending_review_count,
-  (
-    SELECT COUNT(*)
-    FROM `{project_id}.panganlens_ops.source_capture`
-    WHERE status = 'SUCCESS'
-      AND source_host = 'www.bi.go.id'
-      AND payload_sha256 IS NOT NULL
-  ) AS successful_capture_count,
+  (SELECT COUNT(*) FROM valid_source_capture) AS successful_capture_count,
+  (SELECT MAX(completed_at) FROM valid_source_capture) AS latest_successful_capture_at,
+  TIMESTAMP_DIFF(
+    CURRENT_TIMESTAMP(),
+    (SELECT MAX(completed_at) FROM valid_source_capture),
+    HOUR
+  ) AS latest_successful_capture_age_hours,
   (
     SELECT COUNT(*)
     FROM `{project_id}.panganlens_ops.publish_state` AS state
