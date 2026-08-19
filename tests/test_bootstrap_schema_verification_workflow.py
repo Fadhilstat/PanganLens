@@ -10,6 +10,7 @@ AUTH_PIN = "google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093"
 CHECKOUT_PIN = "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
 SETUP_PYTHON_PIN = "actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1"
 UPLOAD_ARTIFACT_PIN = "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
+CLOUD_VALIDATION = "python -m panganlens.cloud_config_cli"
 
 
 def test_bootstrap_verification_workflow_is_manual_main_only_and_keyless():
@@ -27,6 +28,13 @@ def test_bootstrap_verification_workflow_is_manual_main_only_and_keyless():
     assert "GCP_SERVICE_ACCOUNT" not in text
     assert "service_account:" not in text
     assert "credentials_json" not in text
+
+
+def test_bootstrap_verification_validates_cloud_variables_before_authentication():
+    text = WORKFLOW.read_text(encoding="utf-8")
+
+    assert CLOUD_VALIDATION in text
+    assert text.index(CLOUD_VALIDATION) < text.index("- id: auth")
 
 
 def test_bootstrap_verification_workflow_runs_metadata_cli_and_keeps_evidence():
