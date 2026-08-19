@@ -8,7 +8,6 @@ EXPECTED_LITERAL_FILES = {
     "src/panganlens/schema_contract.py",
     "src/panganlens/bootstrap_executor.py",
     "src/panganlens/ingestion/mapping_operator.py",
-    "src/panganlens/ingestion/mapping_resolver.py",
     "src/panganlens/ingestion/mapping_review.py",
     "src/panganlens/warehouse/loader.py",
     "src/panganlens/warehouse/promotion.py",
