@@ -13,12 +13,13 @@ from panganlens.ingestion.mapping_resolver import BigQueryReviewedMappingResolve
 from panganlens.ingestion.orchestration import IngestionContext
 from panganlens.ingestion.pihps_interface import GridRequest, PihpsWebsiteClient
 from panganlens.run_coordinator import execute_grid_run
+from panganlens.schema_contract import WAREHOUSE_LOCATION
 from panganlens.warehouse.loader import BigQueryWarehouse
 from panganlens.warehouse.promotion import BigQueryPromotionRunner
 from panganlens.warehouse.run_state import BigQueryRunStateManager, PipelineOutcome
 from panganlens.warehouse.staging_writer import BigQueryStagingWriter
 
-DEFAULT_LOCATION = "asia-southeast2"
+DEFAULT_LOCATION = WAREHOUSE_LOCATION
 SOURCE_METHOD = "pihps_website_json"
 
 

@@ -11,9 +11,10 @@ from typing import Any
 
 from google.cloud import bigquery
 
+from panganlens.schema_contract import WAREHOUSE_LOCATION
 from panganlens.warehouse.loader import PROJECT_ID_PATTERN
 
-DEFAULT_LOCATION = "asia-southeast2"
+DEFAULT_LOCATION = WAREHOUSE_LOCATION
 DEFAULT_MAXIMUM_BYTES_BILLED = 250_000_000
 
 
