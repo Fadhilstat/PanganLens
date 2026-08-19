@@ -18,6 +18,7 @@ from panganlens.ingestion.mapping_resolver import (
 )
 from panganlens.ingestion.orchestration import IngestionContext
 from panganlens.ingestion.pihps_parser import GridPricePoint
+from panganlens.schema_contract import WAREHOUSE_LOCATION
 from panganlens.warehouse.loader import PROJECT_ID_PATTERN, SHA256_PATTERN
 
 
@@ -109,7 +110,7 @@ class BigQueryMappingReviewQueue:
         self,
         project_id: str,
         client: bigquery.Client | None = None,
-        location: str = "asia-southeast2",
+        location: str = WAREHOUSE_LOCATION,
     ) -> None:
         if not PROJECT_ID_PATTERN.fullmatch(project_id):
             raise ValueError("project_id is not a valid Google Cloud project ID")
