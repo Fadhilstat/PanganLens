@@ -10,9 +10,10 @@ from pathlib import Path
 from google.cloud import bigquery
 
 from panganlens.bootstrap_plan import build_bootstrap_plan
+from panganlens.schema_contract import WAREHOUSE_LOCATION
 from panganlens.warehouse.loader import PROJECT_ID_PATTERN
 
-DEFAULT_LOCATION = "asia-southeast2"
+DEFAULT_LOCATION = WAREHOUSE_LOCATION
 DEFAULT_STATEMENT_TIMEOUT_SECONDS = 120.0
 SHA256_PATTERN = re.compile(r"[0-9a-f]{64}")
 PANGANLENS_DATASET_PATTERN = r"PANGANLENS_(?:RAW|STAGING|CORE|MART|OPS)"
