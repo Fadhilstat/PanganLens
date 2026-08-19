@@ -203,7 +203,11 @@ def _validate_readiness(
         errors.append("readiness.status: unsupported status")
 
     age = readiness.get("latest_source_capture_age_hours")
-    if age is not None:
+    if status == "READY" and age is None:
+        errors.append(
+            "readiness.latest_source_capture_age_hours: required for READY evidence"
+        )
+    elif age is not None:
         if not isinstance(age, int) or isinstance(age, bool):
             errors.append("readiness.latest_source_capture_age_hours: must be integer")
         elif age < 0:
