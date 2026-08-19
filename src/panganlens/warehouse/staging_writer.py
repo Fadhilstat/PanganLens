@@ -11,6 +11,8 @@ from decimal import Decimal
 
 from google.cloud import bigquery
 
+from panganlens.schema_contract import WAREHOUSE_LOCATION
+
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 VALID_SCOPES = {"national", "region", "market"}
 VALID_MAPPING_STATUSES = {"MAPPED", "UNMAPPED"}
@@ -183,7 +185,7 @@ class BigQueryStagingWriter:
         self,
         project_id: str,
         client: bigquery.Client | None = None,
-        location: str = "asia-southeast2",
+        location: str = WAREHOUSE_LOCATION,
     ) -> None:
         self.project_id = project_id
         self.location = location
