@@ -67,11 +67,26 @@ jobs:
             --project-id "$GCP_PROJECT_ID" \
             | tee bootstrap-schema-verification.json
 
+      - name: Build schema verification activation evidence
+        if: always()
+        run: >-
+          python -m panganlens.cloud_run_evidence_cli
+          schema_verification
+          --result bootstrap-schema-verification.json
+          --run-id "${{ github.run_id }}"
+          --workflow-ref "${{ github.workflow_ref }}"
+          --head-branch "${{ github.ref_name }}"
+          --head-sha "${{ github.sha }}"
+          --event "${{ github.event_name }}"
+          > bootstrap-schema-verification-evidence.json
+
       - name: Upload schema verification evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: panganlens-bootstrap-schema-verification
-          path: bootstrap-schema-verification.json
+          name: panganlens-bootstrap-schema-verification-${{ github.sha }}
+          path: |
+            bootstrap-schema-verification.json
+            bootstrap-schema-verification-evidence.json
           if-no-files-found: ignore
           retention-days: 7
