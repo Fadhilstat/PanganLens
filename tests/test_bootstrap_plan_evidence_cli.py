@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from panganlens.bootstrap_plan_evidence_cli import (
@@ -40,7 +42,14 @@ def test_build_bootstrap_plan_evidence_from_reviewed_run_metadata():
     ("field", "value", "message"),
     [
         ("run_id", 0, "positive integer"),
-        ("workflow_ref", "Fadhilstat/PanganLens/.github/workflows/quality.yml@refs/heads/main", "reviewed bootstrap plan workflow"),
+        (
+            "workflow_ref",
+            (
+                "Fadhilstat/PanganLens/.github/workflows/"
+                "quality.yml@refs/heads/main"
+            ),
+            "reviewed bootstrap plan workflow",
+        ),
         ("head_branch", "feature/test", "head_branch must be main"),
         ("head_sha", "NOT-A-SHA", "40-character commit SHA"),
         ("event", "push", "event must be workflow_dispatch"),
@@ -89,8 +98,6 @@ def test_build_bootstrap_plan_evidence_rejects_invalid_plan_contract(
 
 
 def test_bootstrap_plan_evidence_python_has_no_em_dash():
-    from pathlib import Path
-
     source = Path("src/panganlens/bootstrap_plan_evidence_cli.py").read_text(
         encoding="utf-8"
     )
