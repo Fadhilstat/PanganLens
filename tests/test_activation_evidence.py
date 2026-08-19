@@ -49,6 +49,16 @@ def test_complete_manifest_requires_real_success_states():
     assert result.status == "VALID"
 
 
+def test_ready_manifest_requires_source_freshness_evidence():
+    manifest = _base_manifest()
+    manifest["readiness"] = {"run_id": 103, "status": "READY"}
+
+    result = validate_activation_evidence(manifest)
+
+    assert result.status == "INVALID"
+    assert any("required for READY evidence" in error for error in result.errors)
+
+
 def test_complete_manifest_rejects_blocked_or_stale_evidence():
     manifest = _base_manifest()
     manifest.update(
