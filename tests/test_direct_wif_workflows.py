@@ -5,6 +5,7 @@ CLOUD_VALIDATION = "python -m panganlens.cloud_config_cli"
 WORKFLOWS = (
     Path(".github/workflows/gcp_auth_smoke.yml"),
     Path(".github/workflows/bigquery_readiness.yml"),
+    Path(".github/workflows/bootstrap_schema_verification.yml"),
     Path(".github/workflows/dashboard_pages.yml"),
 )
 
@@ -22,21 +23,20 @@ def test_read_only_cloud_workflows_use_direct_wif_without_service_account():
 def test_cloud_access_is_restricted_to_main_for_manual_bigquery_actions():
     auth_smoke = WORKFLOWS[0].read_text(encoding="utf-8")
     readiness = WORKFLOWS[1].read_text(encoding="utf-8")
-    dashboard = WORKFLOWS[2].read_text(encoding="utf-8")
+    schema_verification = WORKFLOWS[2].read_text(encoding="utf-8")
+    dashboard = WORKFLOWS[3].read_text(encoding="utf-8")
 
     assert "github.ref == 'refs/heads/main'" in auth_smoke
     assert "github.ref == 'refs/heads/main'" in readiness
+    assert "github.ref == 'refs/heads/main'" in schema_verification
     assert 'GITHUB_REF" != "refs/heads/main"' in dashboard
 
 
 def test_manual_cloud_workflows_validate_variables_before_authentication():
-    auth_smoke = WORKFLOWS[0].read_text(encoding="utf-8")
-    readiness = WORKFLOWS[1].read_text(encoding="utf-8")
-
-    assert CLOUD_VALIDATION in auth_smoke
-    assert CLOUD_VALIDATION in readiness
-    assert auth_smoke.index(CLOUD_VALIDATION) < auth_smoke.index("- id: auth")
-    assert readiness.index(CLOUD_VALIDATION) < readiness.index("- id: auth")
+    for workflow in WORKFLOWS[:3]:
+        text = workflow.read_text(encoding="utf-8")
+        assert CLOUD_VALIDATION in text
+        assert text.index(CLOUD_VALIDATION) < text.index("- id: auth")
 
 
 def test_cloud_workflows_do_not_override_central_warehouse_location():
@@ -45,6 +45,6 @@ def test_cloud_workflows_do_not_override_central_warehouse_location():
         assert "BIGQUERY_LOCATION" not in text
 
     auth_smoke = WORKFLOWS[0].read_text(encoding="utf-8")
-    dashboard = WORKFLOWS[2].read_text(encoding="utf-8")
+    dashboard = WORKFLOWS[3].read_text(encoding="utf-8")
     assert "from panganlens.schema_contract import WAREHOUSE_LOCATION" in auth_smoke
     assert "--location" not in dashboard
