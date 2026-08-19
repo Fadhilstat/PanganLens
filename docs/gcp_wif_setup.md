@@ -20,6 +20,7 @@ Cloud access is also limited to the reviewed workflow files below:
 
 - `Fadhilstat/PanganLens/.github/workflows/gcp_auth_smoke.yml@refs/heads/main`
 - `Fadhilstat/PanganLens/.github/workflows/bigquery_readiness.yml@refs/heads/main`
+- `Fadhilstat/PanganLens/.github/workflows/bootstrap_schema_verification.yml@refs/heads/main`
 - `Fadhilstat/PanganLens/.github/workflows/dashboard_pages.yml@refs/heads/main`
 
 The `workflow_ref` restriction matters because repository and branch checks alone would still allow a newly added workflow on `main` to request a GitHub OIDC token. Any future cloud-enabled workflow must be reviewed first and then added deliberately to the provider condition.
@@ -78,7 +79,7 @@ gcloud iam workload-identity-pools providers create-oidc panganlens-repo \
   --display-name="PanganLens repository" \
   --issuer-uri="https://token.actions.githubusercontent.com/" \
   --attribute-mapping="google.subject=assertion.sub,attribute.repository_id=assertion.repository_id,attribute.repository_owner_id=assertion.repository_owner_id,attribute.ref=assertion.ref,attribute.workflow_ref=assertion.workflow_ref" \
-  --attribute-condition='attribute.repository_id == "1335081180" && attribute.repository_owner_id == "179431732" && attribute.ref == "refs/heads/main" && (attribute.workflow_ref == "Fadhilstat/PanganLens/.github/workflows/gcp_auth_smoke.yml@refs/heads/main" || attribute.workflow_ref == "Fadhilstat/PanganLens/.github/workflows/bigquery_readiness.yml@refs/heads/main" || attribute.workflow_ref == "Fadhilstat/PanganLens/.github/workflows/dashboard_pages.yml@refs/heads/main")'
+  --attribute-condition='attribute.repository_id == "1335081180" && attribute.repository_owner_id == "179431732" && attribute.ref == "refs/heads/main" && (attribute.workflow_ref == "Fadhilstat/PanganLens/.github/workflows/gcp_auth_smoke.yml@refs/heads/main" || attribute.workflow_ref == "Fadhilstat/PanganLens/.github/workflows/bigquery_readiness.yml@refs/heads/main" || attribute.workflow_ref == "Fadhilstat/PanganLens/.github/workflows/bootstrap_schema_verification.yml@refs/heads/main" || attribute.workflow_ref == "Fadhilstat/PanganLens/.github/workflows/dashboard_pages.yml@refs/heads/main")'
 ```
 
 Do not weaken the condition to repository names only, remove the branch restriction, or accept every workflow in the repository if authentication fails. Check the mapped claims, provider resource name, selected branch, workflow reference, and IAM bindings first.
@@ -116,7 +117,7 @@ Grant `roles/bigquery.dataViewer` to the same principal only on PanganLens datas
 - `panganlens_mart`
 - `panganlens_ops`
 
-The readiness inspector reads metadata across all five datasets and queries `ops` and `mart`. The website snapshot exporter reads only `panganlens_mart`, but using the same read-only principal keeps the manual verification path simple.
+The readiness inspector reads metadata across all five datasets and queries `ops` and `mart`. The schema verifier reads dataset and object metadata. The website snapshot exporter reads only `panganlens_mart`. Using the same read-only principal keeps the verification path simple without adding write access.
 
 Prefer dataset-level access through BigQuery IAM instead of granting Data Viewer across a shared Google Cloud project. If the Google Cloud project is dedicated only to PanganLens, project-level Data Viewer is simpler but broader and should still be an explicit choice.
 
@@ -139,12 +140,13 @@ Do not create or upload a service account key file. Do not add `credentials_json
 
 ## Step 8: verify in a strict order
 
-1. Inspect the provider and confirm the repository ID, owner ID, `main` ref, and three reviewed `workflow_ref` values are present in the effective condition.
+1. Inspect the provider and confirm the repository ID, owner ID, `main` ref, and four reviewed `workflow_ref` values are present in the effective condition.
 2. Run `PanganLens GCP auth smoke test` manually from `main`.
 3. Confirm the workflow reaches the BigQuery `SELECT 1` query using direct WIF.
 4. Run `PanganLens BigQuery readiness` manually from `main`.
 5. Read the `READY` or `BLOCKED` JSON evidence. A `BLOCKED` result is expected until schema, mappings, source evidence, publish state, and marts are complete.
-6. Only after the read-only path is proven should production bootstrap execution or ingestion write permissions be considered.
+6. After bootstrap is applied through the separately reviewed write path, run `PanganLens bootstrap schema verification` from `main` and require `SCHEMA_READY` before any ingestion write path is considered.
+7. Only after the read-only path and schema verification are proven should later production ingestion permissions or schedules be considered.
 
 A new or renamed workflow is expected to fail WIF until the provider condition is intentionally reviewed and updated. Treat that failure as a security control, not as a reason to broaden the trust condition.
 
@@ -152,7 +154,7 @@ A new or renamed workflow is expected to fail WIF until the provider condition i
 
 The current direct WIF principal is deliberately read-only. Production ingestion will eventually need controlled writes to raw, staging, core, ops, and mart-related resources. Do not solve that by adding broad write roles to the read-only principal.
 
-When production ingestion reaches that phase, create a separately reviewed write boundary with the minimum dataset roles required by the actual code path. Keep the source probe, readiness, and website snapshot workflows read-only.
+When production ingestion reaches that phase, create a separately reviewed write boundary with the minimum dataset roles required by the actual code path. Keep the source probe, readiness, schema verification, and website snapshot workflows read-only.
 
 ## Cost boundary
 
