@@ -6,7 +6,6 @@ WAREHOUSE_LOCATION_LITERAL = "asia-southeast2"
 
 EXPECTED_LITERAL_FILES = {
     "src/panganlens/schema_contract.py",
-    "src/panganlens/bootstrap_executor.py",
 }
 
 
