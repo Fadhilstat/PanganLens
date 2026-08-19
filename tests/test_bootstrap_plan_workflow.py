@@ -33,9 +33,22 @@ def test_bootstrap_plan_workflow_keeps_commit_bound_artifact():
     text = _workflow_text()
 
     assert "panganlens-bootstrap-plan-${{ github.sha }}" in text
+    assert "/tmp/panganlens_bootstrap_plan.json" in text
+    assert "/tmp/panganlens_bootstrap_plan_provenance.json" in text
     assert "if-no-files-found: error" in text
     assert "retention-days: 7" in text
     assert "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02" in text
+
+
+def test_bootstrap_plan_workflow_builds_provenance_from_github_context():
+    text = _workflow_text()
+
+    assert "python -m panganlens.bootstrap_plan_evidence_cli" in text
+    assert '${{ github.run_id }}' in text
+    assert '${{ github.workflow_ref }}' in text
+    assert '${{ github.ref_name }}' in text
+    assert '${{ github.sha }}' in text
+    assert '${{ github.event_name }}' in text
 
 
 def test_bootstrap_plan_python_contract_has_no_em_dash():

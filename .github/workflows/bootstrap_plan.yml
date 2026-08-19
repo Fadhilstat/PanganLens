@@ -28,10 +28,22 @@ jobs:
           python -m panganlens.bootstrap_executor_cli
           --repo-root .
           > /tmp/panganlens_bootstrap_plan.json
+      - name: Build bootstrap plan provenance
+        run: >-
+          python -m panganlens.bootstrap_plan_evidence_cli
+          /tmp/panganlens_bootstrap_plan.json
+          --run-id "${{ github.run_id }}"
+          --workflow-ref "${{ github.workflow_ref }}"
+          --head-branch "${{ github.ref_name }}"
+          --head-sha "${{ github.sha }}"
+          --event "${{ github.event_name }}"
+          > /tmp/panganlens_bootstrap_plan_provenance.json
       - name: Upload bootstrap plan evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: panganlens-bootstrap-plan-${{ github.sha }}
-          path: /tmp/panganlens_bootstrap_plan.json
+          path: |
+            /tmp/panganlens_bootstrap_plan.json
+            /tmp/panganlens_bootstrap_plan_provenance.json
           if-no-files-found: error
           retention-days: 7
