@@ -9,8 +9,9 @@ from datetime import datetime
 from google.cloud import bigquery
 
 from panganlens.ingestion.mapping_operator import BigQueryMappingOperator
+from panganlens.schema_contract import WAREHOUSE_LOCATION
 
-DEFAULT_LOCATION = "asia-southeast2"
+DEFAULT_LOCATION = WAREHOUSE_LOCATION
 
 
 def build_parser() -> argparse.ArgumentParser:
