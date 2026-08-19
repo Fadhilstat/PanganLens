@@ -1,9 +1,15 @@
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from google.api_core.exceptions import NotFound
 
 from panganlens.cost_guard import DEFAULT_QUERY_SAFETY_BYTES, DEFAULT_STORAGE_SAFETY_BYTES
-from panganlens.readiness import REQUIRED_DATASETS, REQUIRED_OBJECTS, BigQueryReadinessInspector
+from panganlens.readiness import (
+    DEFAULT_MAX_SOURCE_CAPTURE_AGE_HOURS,
+    REQUIRED_DATASETS,
+    REQUIRED_OBJECTS,
+    BigQueryReadinessInspector,
+)
 from panganlens.schema_contract import WAREHOUSE_LOCATION, WAREHOUSE_OBJECTS
 
 
@@ -102,6 +108,8 @@ def ready_metrics():
         "duplicate_active_mapping_count": 0,
         "pending_review_count": 0,
         "successful_capture_count": 4,
+        "latest_successful_capture_at": datetime(2026, 8, 19, 3, tzinfo=UTC),
+        "latest_successful_capture_age_hours": 2,
         "valid_publish_state_count": 1,
         "national_dashboard_row_count": 10,
         "region_dashboard_row_count": 20,
@@ -130,13 +138,14 @@ def test_readiness_reports_ready_when_all_gates_pass():
     query, config, location = client.queries[4]
     assert "panganlens_ops.source_entity_mapping" in query
     assert "panganlens_ops.source_capture" in query
-    assert "run.status = 'SUCCESS'" in query
+    assert "latest_successful_capture_age_hours" in query
     assert "duplicate_active_mapping_count" in query
     assert "vw_looker_province_map" in query
     assert config.maximum_bytes_billed == 50_000_000
     assert location == WAREHOUSE_LOCATION
     assert report.metrics["storage_billable_bytes"] == 0
     assert report.metrics["dashboard_query_total_bytes_processed"] == 60
+    assert report.metrics["source_capture_max_age_hours"] == DEFAULT_MAX_SOURCE_CAPTURE_AGE_HOURS
 
 
 def test_readiness_blocks_when_dashboard_query_exceeds_budget():
@@ -212,6 +221,51 @@ def test_readiness_blocks_when_mapping_review_is_pending():
     pending = next(check for check in report.checks if check.name == "mapping:pending_review")
     assert pending.status == "FAIL"
     assert "2 kandidat" in pending.detail
+
+
+def test_readiness_blocks_stale_source_capture():
+    metrics = ready_metrics()
+    metrics["latest_successful_capture_age_hours"] = DEFAULT_MAX_SOURCE_CAPTURE_AGE_HOURS + 1
+    inspector = BigQueryReadinessInspector(
+        "panganlens-demo",
+        client=FakeClient(metrics=metrics),
+    )
+
+    report = inspector.inspect()
+
+    assert report.status == "BLOCKED"
+    source = next(check for check in report.checks if check.name == "source:fresh_capture")
+    assert source.status == "FAIL"
+    assert str(DEFAULT_MAX_SOURCE_CAPTURE_AGE_HOURS) in source.detail
+
+
+def test_readiness_blocks_missing_or_future_source_capture_timestamp():
+    missing = ready_metrics()
+    missing["latest_successful_capture_at"] = None
+    missing["latest_successful_capture_age_hours"] = None
+    missing_report = BigQueryReadinessInspector(
+        "panganlens-demo",
+        client=FakeClient(metrics=missing),
+    ).inspect()
+    missing_check = next(
+        check for check in missing_report.checks if check.name == "source:fresh_capture"
+    )
+    assert missing_report.status == "BLOCKED"
+    assert missing_check.status == "FAIL"
+    assert "completed_at" in missing_check.detail
+
+    future = ready_metrics()
+    future["latest_successful_capture_age_hours"] = -1
+    future_report = BigQueryReadinessInspector(
+        "panganlens-demo",
+        client=FakeClient(metrics=future),
+    ).inspect()
+    future_check = next(
+        check for check in future_report.checks if check.name == "source:fresh_capture"
+    )
+    assert future_report.status == "BLOCKED"
+    assert future_check.status == "FAIL"
+    assert "masa depan" in future_check.detail
 
 
 def test_readiness_blocks_invalid_publish_pointer_and_duplicate_mapping():
@@ -361,3 +415,14 @@ def test_readiness_rejects_invalid_project_location_and_query_ceiling():
         assert "maximum_bytes_billed" in str(exc)
     else:
         raise AssertionError("non-positive query ceiling should fail")
+
+    try:
+        BigQueryReadinessInspector(
+            "panganlens-demo",
+            client=FakeClient(),
+            max_source_capture_age_hours=0,
+        )
+    except ValueError as exc:
+        assert "max_source_capture_age_hours" in str(exc)
+    else:
+        raise AssertionError("non-positive source age limit should fail")
