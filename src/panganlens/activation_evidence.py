@@ -319,6 +319,36 @@ def _validate_completion(evidence: Mapping[str, Any], errors: list[str]) -> None
             errors=errors,
         )
 
+    _validate_completion_head_commit(evidence, errors)
+
+
+def _validate_completion_head_commit(
+    evidence: Mapping[str, Any],
+    errors: list[str],
+) -> None:
+    auth_smoke = evidence.get("auth_smoke")
+    bootstrap = evidence.get("bootstrap")
+    readiness = evidence.get("readiness")
+    if not all(
+        isinstance(section, Mapping)
+        for section in (auth_smoke, bootstrap, readiness)
+    ):
+        return
+
+    head_shas = {
+        auth_smoke.get("head_sha"),
+        bootstrap.get("plan_head_sha"),
+        bootstrap.get("schema_verification_head_sha"),
+        readiness.get("head_sha"),
+    }
+    valid_head_shas = {
+        value
+        for value in head_shas
+        if isinstance(value, str) and COMMIT_SHA_PATTERN.fullmatch(value)
+    }
+    if len(valid_head_shas) > 1:
+        errors.append("completion: all workflow evidence must use the same head commit")
+
 
 def _validate_optional_run_provenance(
     value: Mapping[str, Any],
