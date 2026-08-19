@@ -104,6 +104,37 @@ Artifact diberi nama yang terikat ke `github.sha` dan disimpan selama 7 hari. Un
 
 Fragment tersebut hanya berisi metadata dan status yang sudah diizinkan oleh activation manifest. Ia tidak memuat credential, token, service-account JSON, atau isi file autentikasi yang dibuat sementara oleh GitHub Actions.
 
+## Menggabungkan evidence fragment
+
+Jangan menyalin field artifact satu per satu ke manifest. Gunakan merger agar nilai yang sudah ada tidak tertimpa diam-diam dan manifest hasil gabungan langsung diperiksa oleh validator yang sama.
+
+```bash
+python -m panganlens.activation_evidence_merge_cli \
+  path/to/base-activation-evidence.json \
+  path/to/panganlens_bootstrap_plan_provenance.json \
+  path/to/auth-smoke-evidence.json \
+  path/to/bootstrap-schema-verification-evidence.json \
+  path/to/bigquery-readiness-evidence.json \
+  --output path/to/activation-evidence.json
+```
+
+Bootstrap plan provenance masih berbentuk object flat karena artifact itu juga dipakai untuk review plan secara mandiri. Merger mengenali field `plan_*` yang direview dan memasukkannya ke object `bootstrap` tanpa operator perlu mengubah struktur JSON secara manual.
+
+Jika dua input membawa nilai berbeda untuk key yang sama, merger berhenti dengan status `INVALID`. Contohnya termasuk run ID berbeda pada `auth_smoke`, plan SHA berbeda, atau commit SHA berbeda pada field yang sama. Nilai yang identik boleh muncul ulang karena tidak mengubah bukti.
+
+Untuk final gate Phase 2, jalankan merger dengan validasi lengkap:
+
+```bash
+python -m panganlens.activation_evidence_merge_cli \
+  path/to/base-activation-evidence.json \
+  path/to/reviewed-fragment-1.json \
+  path/to/reviewed-fragment-2.json \
+  --require-complete \
+  --output path/to/activation-evidence.json
+```
+
+`--require-complete` tidak membuat bukti yang belum ada. Opsi itu hanya memastikan manifest gabungan benar-benar memenuhi kontrak completion yang sudah didefinisikan validator.
+
 ## Provenance workflow
 
 Run ID saja tidak cukup untuk completion evidence. Setiap bukti workflow lengkap harus membawa:
