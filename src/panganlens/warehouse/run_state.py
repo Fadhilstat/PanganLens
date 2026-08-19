@@ -7,6 +7,7 @@ from datetime import date, datetime
 
 from google.cloud import bigquery
 
+from panganlens.schema_contract import WAREHOUSE_LOCATION
 from panganlens.warehouse.loader import PROJECT_ID_PATTERN
 
 VALID_FINAL_STATUSES = {"SUCCESS", "NO_NEW_DATA", "BLOCKED", "FAILED"}
@@ -62,7 +63,7 @@ class BigQueryRunStateManager:
         self,
         project_id: str,
         client: bigquery.Client | None = None,
-        location: str = "asia-southeast2",
+        location: str = WAREHOUSE_LOCATION,
     ) -> None:
         if not PROJECT_ID_PATTERN.fullmatch(project_id):
             raise ValueError("project_id is not a valid Google Cloud project ID")
