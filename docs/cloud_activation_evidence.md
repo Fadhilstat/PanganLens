@@ -90,7 +90,7 @@ python -m panganlens.activation_evidence_cli \
   --require-complete
 ```
 
-`--require-complete` hanya lolos jika provider WIF sudah diverifikasi, auth smoke sukses, bootstrap plan memiliki run provenance yang valid, bootstrap verifier menghasilkan `SCHEMA_READY`, full readiness menghasilkan `READY`, source capture tidak melewati batas freshness default 72 jam, dan seluruh workflow evidence berasal dari workflow manual yang direview pada branch `main`.
+`--require-complete` hanya lolos jika provider WIF sudah diverifikasi, auth smoke sukses, bootstrap plan memiliki run provenance yang valid, bootstrap verifier memiliki `schema_verification_run_id` yang valid dan menghasilkan `SCHEMA_READY`, full readiness menghasilkan `READY`, source capture tidak melewati batas freshness default 72 jam, dan seluruh workflow evidence berasal dari workflow manual yang direview pada branch `main`.
 
 ## Provenance workflow
 
@@ -101,7 +101,7 @@ Run ID saja tidak cukup untuk completion evidence. Setiap bukti workflow lengkap
 - commit `head_sha` lowercase 40 karakter;
 - event `workflow_dispatch`.
 
-Kontrak ini berlaku untuk auth smoke, bootstrap plan, schema verification, dan readiness. Bootstrap plan juga harus membawa `plan_run_id`, bukan hanya `plan_sha256`. Hash plan yang diketik manual tanpa run provenance tidak cukup untuk menutup gate Phase 2.
+Kontrak ini berlaku untuk auth smoke, bootstrap plan, schema verification, dan readiness. Bootstrap plan harus membawa `plan_run_id`, bukan hanya `plan_sha256`. Schema verification juga harus membawa `schema_verification_run_id` agar status `SCHEMA_READY` dapat ditelusuri langsung ke workflow run yang menghasilkannya. Hash atau status yang diketik manual tanpa run provenance tidak cukup untuk menutup gate Phase 2.
 
 Kontrak ini mencegah run sukses dari workflow lain, branch eksperimen, trigger yang tidak direview, atau plan dari commit berbeda ikut dipakai sebagai bukti Phase 2. Validator tetap tidak mencoba menghubungi GitHub. Operator harus membandingkan nilai manifest dengan metadata workflow run di GitHub sebelum menyimpannya.
 
@@ -130,7 +130,7 @@ Manifest adalah indeks bukti, bukan sumber kebenaran cloud. Status tetap berasal
 2. Auth smoke berasal dari `PanganLens GCP auth smoke test` pada `main`.
 3. Bootstrap plan hash berasal dari artifact `PanganLens bootstrap plan` pada `main`, lengkap dengan run provenance.
 4. Plan dan schema verification harus memakai head commit yang sama.
-5. `SCHEMA_READY` berasal dari metadata-only bootstrap verifier pada `main`.
+5. `SCHEMA_READY` berasal dari metadata-only bootstrap verifier pada `main` dan harus membawa run ID verifier yang valid.
 6. `READY` dan source freshness berasal dari BigQuery readiness inspector pada `main`.
 7. Workflow provenance berasal dari metadata GitHub Actions run yang sesuai.
 

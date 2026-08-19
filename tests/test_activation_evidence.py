@@ -109,6 +109,57 @@ def test_complete_manifest_rejects_success_without_run_provenance():
     assert any("bootstrap.plan_run_id" in error for error in result.errors)
 
 
+def test_complete_manifest_requires_schema_verification_run_id():
+    manifest = _base_manifest()
+    auth_smoke = {"run_id": 101, "conclusion": "success"}
+    auth_smoke.update(_run_provenance(".github/workflows/gcp_auth_smoke.yml"))
+
+    readiness = {
+        "run_id": 104,
+        "status": "READY",
+        "latest_source_capture_age_hours": 12,
+    }
+    readiness.update(_run_provenance(".github/workflows/bigquery_readiness.yml"))
+
+    plan_provenance = _run_provenance(
+        ".github/workflows/bootstrap_plan.yml",
+        head_sha="b" * 40,
+    )
+    schema_provenance = _run_provenance(
+        ".github/workflows/bootstrap_schema_verification.yml",
+        head_sha="b" * 40,
+    )
+    bootstrap = {
+        "plan_sha256": "c" * 64,
+        "plan_run_id": 102,
+        "plan_workflow_path": plan_provenance["workflow_path"],
+        "plan_head_branch": plan_provenance["head_branch"],
+        "plan_head_sha": plan_provenance["head_sha"],
+        "plan_event": plan_provenance["event"],
+        "schema_status": "SCHEMA_READY",
+        "schema_verification_workflow_path": schema_provenance["workflow_path"],
+        "schema_verification_head_branch": schema_provenance["head_branch"],
+        "schema_verification_head_sha": schema_provenance["head_sha"],
+        "schema_verification_event": schema_provenance["event"],
+    }
+
+    manifest.update(
+        {
+            "wif": {"provider_verified": True},
+            "auth_smoke": auth_smoke,
+            "bootstrap": bootstrap,
+            "readiness": readiness,
+        }
+    )
+
+    result = validate_activation_evidence(manifest, require_complete=True)
+
+    assert result.status == "INVALID"
+    assert any(
+        "bootstrap.schema_verification_run_id" in error for error in result.errors
+    )
+
+
 def test_manifest_rejects_wrong_workflow_branch_event_or_commit_sha():
     manifest = _base_manifest()
     manifest["auth_smoke"] = {
