@@ -14,6 +14,12 @@ REPOSITORY_ID = 1335081180
 REPOSITORY_OWNER_ID = 179431732
 DEFAULT_MAX_SOURCE_CAPTURE_AGE_HOURS = 72
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
+COMMIT_SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
+EXPECTED_BRANCH = "main"
+EXPECTED_EVENT = "workflow_dispatch"
+AUTH_SMOKE_WORKFLOW = ".github/workflows/gcp_auth_smoke.yml"
+SCHEMA_VERIFICATION_WORKFLOW = ".github/workflows/bootstrap_schema_verification.yml"
+READINESS_WORKFLOW = ".github/workflows/bigquery_readiness.yml"
 FORBIDDEN_KEY_PARTS = (
     "access_key",
     "credential",
@@ -158,6 +164,12 @@ def _validate_auth_smoke(evidence: Mapping[str, Any], errors: list[str]) -> None
     conclusion = auth_smoke.get("conclusion")
     if conclusion not in {"success", "failure", "cancelled"}:
         errors.append("auth_smoke.conclusion: unsupported conclusion")
+    _validate_optional_run_provenance(
+        auth_smoke,
+        path="auth_smoke",
+        expected_workflow=AUTH_SMOKE_WORKFLOW,
+        errors=errors,
+    )
 
 
 def _validate_bootstrap(evidence: Mapping[str, Any], errors: list[str]) -> None:
@@ -182,6 +194,14 @@ def _validate_bootstrap(evidence: Mapping[str, Any], errors: list[str]) -> None:
     schema_status = bootstrap.get("schema_status")
     if schema_status is not None and schema_status not in {"SCHEMA_READY", "BLOCKED"}:
         errors.append("bootstrap.schema_status: unsupported status")
+
+    _validate_optional_run_provenance(
+        bootstrap,
+        path="bootstrap.schema_verification",
+        expected_workflow=SCHEMA_VERIFICATION_WORKFLOW,
+        errors=errors,
+        prefix="schema_verification_",
+    )
 
 
 def _validate_readiness(
@@ -217,6 +237,13 @@ def _validate_readiness(
                 "readiness.latest_source_capture_age_hours: READY evidence is stale"
             )
 
+    _validate_optional_run_provenance(
+        readiness,
+        path="readiness",
+        expected_workflow=READINESS_WORKFLOW,
+        errors=errors,
+    )
+
 
 def _validate_completion(evidence: Mapping[str, Any], errors: list[str]) -> None:
     wif = evidence.get("wif")
@@ -232,6 +259,115 @@ def _validate_completion(evidence: Mapping[str, Any], errors: list[str]) -> None
         errors.append("completion: SCHEMA_READY evidence is required")
     if not isinstance(readiness, Mapping) or readiness.get("status") != "READY":
         errors.append("completion: READY evidence is required")
+
+    if isinstance(auth_smoke, Mapping):
+        _require_run_provenance(
+            auth_smoke,
+            path="auth_smoke",
+            expected_workflow=AUTH_SMOKE_WORKFLOW,
+            errors=errors,
+        )
+    if isinstance(bootstrap, Mapping):
+        _require_run_provenance(
+            bootstrap,
+            path="bootstrap.schema_verification",
+            expected_workflow=SCHEMA_VERIFICATION_WORKFLOW,
+            errors=errors,
+            prefix="schema_verification_",
+        )
+    if isinstance(readiness, Mapping):
+        _require_run_provenance(
+            readiness,
+            path="readiness",
+            expected_workflow=READINESS_WORKFLOW,
+            errors=errors,
+        )
+
+
+def _validate_optional_run_provenance(
+    value: Mapping[str, Any],
+    *,
+    path: str,
+    expected_workflow: str,
+    errors: list[str],
+    prefix: str = "",
+) -> None:
+    fields = (
+        f"{prefix}workflow_path",
+        f"{prefix}head_branch",
+        f"{prefix}head_sha",
+        f"{prefix}event",
+    )
+    if not any(field in value for field in fields):
+        return
+    _validate_run_provenance(
+        value,
+        path=path,
+        expected_workflow=expected_workflow,
+        errors=errors,
+        prefix=prefix,
+        require_all=True,
+    )
+
+
+def _require_run_provenance(
+    value: Mapping[str, Any],
+    *,
+    path: str,
+    expected_workflow: str,
+    errors: list[str],
+    prefix: str = "",
+) -> None:
+    _validate_run_provenance(
+        value,
+        path=path,
+        expected_workflow=expected_workflow,
+        errors=errors,
+        prefix=prefix,
+        require_all=True,
+    )
+
+
+def _validate_run_provenance(
+    value: Mapping[str, Any],
+    *,
+    path: str,
+    expected_workflow: str,
+    errors: list[str],
+    prefix: str,
+    require_all: bool,
+) -> None:
+    workflow_key = f"{prefix}workflow_path"
+    branch_key = f"{prefix}head_branch"
+    sha_key = f"{prefix}head_sha"
+    event_key = f"{prefix}event"
+
+    workflow_path = value.get(workflow_key)
+    branch = value.get(branch_key)
+    head_sha = value.get(sha_key)
+    event = value.get(event_key)
+
+    if require_all and workflow_path is None:
+        errors.append(f"{path}.workflow_path: provenance is required")
+    elif workflow_path is not None and workflow_path != expected_workflow:
+        errors.append(f"{path}.workflow_path: unexpected workflow")
+
+    if require_all and branch is None:
+        errors.append(f"{path}.head_branch: provenance is required")
+    elif branch is not None and branch != EXPECTED_BRANCH:
+        errors.append(f"{path}.head_branch: expected main")
+
+    if require_all and head_sha is None:
+        errors.append(f"{path}.head_sha: provenance is required")
+    elif head_sha is not None and (
+        not isinstance(head_sha, str) or not COMMIT_SHA_PATTERN.fullmatch(head_sha)
+    ):
+        errors.append(f"{path}.head_sha: must be lowercase 40-character commit SHA")
+
+    if require_all and event is None:
+        errors.append(f"{path}.event: provenance is required")
+    elif event is not None and event != EXPECTED_EVENT:
+        errors.append(f"{path}.event: expected workflow_dispatch")
 
 
 def _validate_run_id(value: Any, path: str, errors: list[str]) -> None:

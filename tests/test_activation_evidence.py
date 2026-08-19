@@ -18,6 +18,15 @@ def _base_manifest():
     }
 
 
+def _run_provenance(workflow_path, head_sha="a" * 40):
+    return {
+        "workflow_path": workflow_path,
+        "head_branch": "main",
+        "head_sha": head_sha,
+        "event": "workflow_dispatch",
+    }
+
+
 def test_partial_manifest_is_valid_without_fabricating_future_evidence():
     result = validate_activation_evidence(_base_manifest())
 
@@ -25,7 +34,47 @@ def test_partial_manifest_is_valid_without_fabricating_future_evidence():
     assert result.errors == ()
 
 
-def test_complete_manifest_requires_real_success_states():
+def test_complete_manifest_requires_real_success_states_and_run_provenance():
+    manifest = _base_manifest()
+    auth_smoke = {"run_id": 101, "conclusion": "success"}
+    auth_smoke.update(_run_provenance(".github/workflows/gcp_auth_smoke.yml"))
+
+    readiness = {
+        "run_id": 103,
+        "status": "READY",
+        "latest_source_capture_age_hours": 12,
+    }
+    readiness.update(_run_provenance(".github/workflows/bigquery_readiness.yml"))
+
+    bootstrap_provenance = _run_provenance(
+        ".github/workflows/bootstrap_schema_verification.yml",
+        head_sha="b" * 40,
+    )
+    bootstrap = {
+        "plan_sha256": "c" * 64,
+        "schema_verification_run_id": 102,
+        "schema_status": "SCHEMA_READY",
+        "schema_verification_workflow_path": bootstrap_provenance["workflow_path"],
+        "schema_verification_head_branch": bootstrap_provenance["head_branch"],
+        "schema_verification_head_sha": bootstrap_provenance["head_sha"],
+        "schema_verification_event": bootstrap_provenance["event"],
+    }
+
+    manifest.update(
+        {
+            "wif": {"provider_verified": True},
+            "auth_smoke": auth_smoke,
+            "bootstrap": bootstrap,
+            "readiness": readiness,
+        }
+    )
+
+    result = validate_activation_evidence(manifest, require_complete=True)
+
+    assert result.status == "VALID"
+
+
+def test_complete_manifest_rejects_success_without_run_provenance():
     manifest = _base_manifest()
     manifest.update(
         {
@@ -46,7 +95,28 @@ def test_complete_manifest_requires_real_success_states():
 
     result = validate_activation_evidence(manifest, require_complete=True)
 
-    assert result.status == "VALID"
+    assert result.status == "INVALID"
+    assert sum("provenance is required" in error for error in result.errors) == 12
+
+
+def test_manifest_rejects_wrong_workflow_branch_event_or_commit_sha():
+    manifest = _base_manifest()
+    manifest["auth_smoke"] = {
+        "run_id": 101,
+        "conclusion": "success",
+        "workflow_path": ".github/workflows/bigquery_readiness.yml",
+        "head_branch": "feature/test",
+        "head_sha": "NOT-A-SHA",
+        "event": "push",
+    }
+
+    result = validate_activation_evidence(manifest)
+
+    assert result.status == "INVALID"
+    assert any("unexpected workflow" in error for error in result.errors)
+    assert any("expected main" in error for error in result.errors)
+    assert any("40-character commit SHA" in error for error in result.errors)
+    assert any("expected workflow_dispatch" in error for error in result.errors)
 
 
 def test_ready_manifest_requires_source_freshness_evidence():
