@@ -292,6 +292,11 @@ def _validate_completion(evidence: Mapping[str, Any], errors: list[str]) -> None
         )
     if isinstance(bootstrap, Mapping):
         _validate_run_id(bootstrap.get("plan_run_id"), "bootstrap.plan_run_id", errors)
+        _validate_run_id(
+            bootstrap.get("schema_verification_run_id"),
+            "bootstrap.schema_verification_run_id",
+            errors,
+        )
         _require_run_provenance(
             bootstrap,
             path="bootstrap.plan",
