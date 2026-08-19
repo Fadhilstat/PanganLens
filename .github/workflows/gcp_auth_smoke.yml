@@ -98,3 +98,22 @@ jobs:
               raise RuntimeError("BigQuery authentication smoke query returned an unexpected result")
           print("Direct keyless Google Cloud authentication and BigQuery access verified")
           PY
+
+      - name: Build auth smoke activation evidence
+        run: >-
+          python -m panganlens.cloud_run_evidence_cli
+          auth_smoke
+          --run-id "${{ github.run_id }}"
+          --workflow-ref "${{ github.workflow_ref }}"
+          --head-branch "${{ github.ref_name }}"
+          --head-sha "${{ github.sha }}"
+          --event "${{ github.event_name }}"
+          > auth-smoke-evidence.json
+
+      - name: Upload auth smoke evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: panganlens-gcp-auth-smoke-${{ github.sha }}
+          path: auth-smoke-evidence.json
+          if-no-files-found: error
+          retention-days: 7
