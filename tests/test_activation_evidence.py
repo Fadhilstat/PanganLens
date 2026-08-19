@@ -27,32 +27,35 @@ def _run_provenance(workflow_path, head_sha="a" * 40):
     }
 
 
-def test_partial_manifest_is_valid_without_fabricating_future_evidence():
-    result = validate_activation_evidence(_base_manifest())
-
-    assert result.status == "VALID"
-    assert result.errors == ()
-
-
-def test_complete_manifest_requires_real_success_states_and_run_provenance():
+def _complete_manifest(head_sha="b" * 40):
     manifest = _base_manifest()
     auth_smoke = {"run_id": 101, "conclusion": "success"}
-    auth_smoke.update(_run_provenance(".github/workflows/gcp_auth_smoke.yml"))
+    auth_smoke.update(
+        _run_provenance(
+            ".github/workflows/gcp_auth_smoke.yml",
+            head_sha=head_sha,
+        )
+    )
 
     readiness = {
         "run_id": 104,
         "status": "READY",
         "latest_source_capture_age_hours": 12,
     }
-    readiness.update(_run_provenance(".github/workflows/bigquery_readiness.yml"))
+    readiness.update(
+        _run_provenance(
+            ".github/workflows/bigquery_readiness.yml",
+            head_sha=head_sha,
+        )
+    )
 
     plan_provenance = _run_provenance(
         ".github/workflows/bootstrap_plan.yml",
-        head_sha="b" * 40,
+        head_sha=head_sha,
     )
     schema_provenance = _run_provenance(
         ".github/workflows/bootstrap_schema_verification.yml",
-        head_sha="b" * 40,
+        head_sha=head_sha,
     )
     bootstrap = {
         "plan_sha256": "c" * 64,
@@ -77,8 +80,40 @@ def test_complete_manifest_requires_real_success_states_and_run_provenance():
             "readiness": readiness,
         }
     )
+    return manifest
+
+
+def test_partial_manifest_is_valid_without_fabricating_future_evidence():
+    result = validate_activation_evidence(_base_manifest())
+
+    assert result.status == "VALID"
+    assert result.errors == ()
+
+
+def test_complete_manifest_requires_real_success_states_and_run_provenance():
+    result = validate_activation_evidence(_complete_manifest(), require_complete=True)
+
+    assert result.status == "VALID"
+
+
+def test_complete_manifest_rejects_workflow_evidence_from_different_commits():
+    manifest = _complete_manifest()
+    manifest["readiness"]["head_sha"] = "d" * 40
 
     result = validate_activation_evidence(manifest, require_complete=True)
+
+    assert result.status == "INVALID"
+    assert any(
+        "all workflow evidence must use the same head commit" in error
+        for error in result.errors
+    )
+
+
+def test_partial_manifest_allows_evidence_from_different_commits():
+    manifest = _complete_manifest()
+    manifest["auth_smoke"]["head_sha"] = "d" * 40
+
+    result = validate_activation_evidence(manifest)
 
     assert result.status == "VALID"
 
@@ -110,47 +145,8 @@ def test_complete_manifest_rejects_success_without_run_provenance():
 
 
 def test_complete_manifest_requires_schema_verification_run_id():
-    manifest = _base_manifest()
-    auth_smoke = {"run_id": 101, "conclusion": "success"}
-    auth_smoke.update(_run_provenance(".github/workflows/gcp_auth_smoke.yml"))
-
-    readiness = {
-        "run_id": 104,
-        "status": "READY",
-        "latest_source_capture_age_hours": 12,
-    }
-    readiness.update(_run_provenance(".github/workflows/bigquery_readiness.yml"))
-
-    plan_provenance = _run_provenance(
-        ".github/workflows/bootstrap_plan.yml",
-        head_sha="b" * 40,
-    )
-    schema_provenance = _run_provenance(
-        ".github/workflows/bootstrap_schema_verification.yml",
-        head_sha="b" * 40,
-    )
-    bootstrap = {
-        "plan_sha256": "c" * 64,
-        "plan_run_id": 102,
-        "plan_workflow_path": plan_provenance["workflow_path"],
-        "plan_head_branch": plan_provenance["head_branch"],
-        "plan_head_sha": plan_provenance["head_sha"],
-        "plan_event": plan_provenance["event"],
-        "schema_status": "SCHEMA_READY",
-        "schema_verification_workflow_path": schema_provenance["workflow_path"],
-        "schema_verification_head_branch": schema_provenance["head_branch"],
-        "schema_verification_head_sha": schema_provenance["head_sha"],
-        "schema_verification_event": schema_provenance["event"],
-    }
-
-    manifest.update(
-        {
-            "wif": {"provider_verified": True},
-            "auth_smoke": auth_smoke,
-            "bootstrap": bootstrap,
-            "readiness": readiness,
-        }
-    )
+    manifest = _complete_manifest()
+    del manifest["bootstrap"]["schema_verification_run_id"]
 
     result = validate_activation_evidence(manifest, require_complete=True)
 
