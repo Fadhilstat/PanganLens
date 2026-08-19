@@ -13,6 +13,13 @@ The client requires HTTPS, an allowlisted source host, JSON content, no HTTP
 redirect, a bounded payload size, and a valid UTF-8 body. Each successful source
 capture records request, schema, and payload fingerprints.
 
+A successful capture is not treated as current forever. Production readiness also
+checks the age of the latest successful PIHPS capture. The default freshness limit
+is 72 hours. This gives a normal Friday-to-Monday gap room to pass while still
+blocking a source that has stopped producing fresh evidence. Longer gaps, including
+extended holidays or upstream outages, remain fail-closed and require an operator
+to review source health before publication resumes.
+
 ## Raw integrity
 
 The raw layer stores the exact decoded JSON text together with its SHA-256 hash.
@@ -47,7 +54,8 @@ updated only after the revision rule accepts the new source value.
 
 Only rows with `mapping_status = MAPPED` and `validation_status = VALID` are
 eligible for the 3NF core. A run must pass raw integrity, mapping, uniqueness,
-conflict, referential, and post-load checks before curated marts are refreshed.
+conflict, referential, source freshness, and post-load checks before curated marts
+are treated as publication-ready.
 
 If a critical check fails, the dashboard keeps the last known good dataset.
 
