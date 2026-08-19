@@ -56,7 +56,12 @@ Setelah langkah cloud benar-benar dijalankan, catat hanya metadata aman dari wor
   },
   "bootstrap": {
     "plan_sha256": "REVIEWED_64_CHARACTER_LOWERCASE_SHA256",
-    "schema_verification_run_id": 123456790,
+    "plan_run_id": 123456790,
+    "plan_workflow_path": ".github/workflows/bootstrap_plan.yml",
+    "plan_head_branch": "main",
+    "plan_head_sha": "40_CHARACTER_LOWERCASE_COMMIT_SHA",
+    "plan_event": "workflow_dispatch",
+    "schema_verification_run_id": 123456791,
     "schema_status": "SCHEMA_READY",
     "schema_verification_workflow_path": ".github/workflows/bootstrap_schema_verification.yml",
     "schema_verification_head_branch": "main",
@@ -64,7 +69,7 @@ Setelah langkah cloud benar-benar dijalankan, catat hanya metadata aman dari wor
     "schema_verification_event": "workflow_dispatch"
   },
   "readiness": {
-    "run_id": 123456791,
+    "run_id": 123456792,
     "status": "READY",
     "latest_source_capture_age_hours": 12,
     "workflow_path": ".github/workflows/bigquery_readiness.yml",
@@ -75,6 +80,8 @@ Setelah langkah cloud benar-benar dijalankan, catat hanya metadata aman dari wor
 }
 ```
 
+`plan_head_sha` dan `schema_verification_head_sha` harus sama. Dengan begitu, schema yang direview melalui plan-only workflow dan schema yang kemudian diverifikasi berasal dari snapshot repository yang sama.
+
 Validasi gate lengkap:
 
 ```bash
@@ -83,7 +90,7 @@ python -m panganlens.activation_evidence_cli \
   --require-complete
 ```
 
-`--require-complete` hanya lolos jika provider WIF sudah diverifikasi, auth smoke sukses, bootstrap verifier menghasilkan `SCHEMA_READY`, full readiness menghasilkan `READY`, source capture tidak melewati batas freshness default 72 jam, dan ketiga workflow evidence memiliki provenance yang sesuai dengan workflow manual yang direview pada branch `main`.
+`--require-complete` hanya lolos jika provider WIF sudah diverifikasi, auth smoke sukses, bootstrap plan memiliki run provenance yang valid, bootstrap verifier menghasilkan `SCHEMA_READY`, full readiness menghasilkan `READY`, source capture tidak melewati batas freshness default 72 jam, dan seluruh workflow evidence berasal dari workflow manual yang direview pada branch `main`.
 
 ## Provenance workflow
 
@@ -94,7 +101,9 @@ Run ID saja tidak cukup untuk completion evidence. Setiap bukti workflow lengkap
 - commit `head_sha` lowercase 40 karakter;
 - event `workflow_dispatch`.
 
-Kontrak ini mencegah run sukses dari workflow lain, branch eksperimen, atau trigger yang tidak direview ikut dipakai sebagai bukti Phase 2. Validator tetap tidak mencoba menghubungi GitHub. Operator harus membandingkan nilai manifest dengan metadata workflow run di GitHub sebelum menyimpannya.
+Kontrak ini berlaku untuk auth smoke, bootstrap plan, schema verification, dan readiness. Bootstrap plan juga harus membawa `plan_run_id`, bukan hanya `plan_sha256`. Hash plan yang diketik manual tanpa run provenance tidak cukup untuk menutup gate Phase 2.
+
+Kontrak ini mencegah run sukses dari workflow lain, branch eksperimen, trigger yang tidak direview, atau plan dari commit berbeda ikut dipakai sebagai bukti Phase 2. Validator tetap tidak mencoba menghubungi GitHub. Operator harus membandingkan nilai manifest dengan metadata workflow run di GitHub sebelum menyimpannya.
 
 ## Yang boleh dicatat
 
@@ -103,7 +112,7 @@ Kontrak ini mencegah run sukses dari workflow lain, branch eksperimen, atau trig
 - Google Cloud project ID.
 - Full WIF provider resource name yang sudah direview.
 - Boolean bahwa effective provider condition telah diperiksa.
-- Exact reviewed `plan_sha256`.
+- Exact reviewed `plan_sha256` dari artifact bootstrap plan yang sesuai.
 - Status `SCHEMA_READY`, `BLOCKED`, `READY`, atau conclusion workflow yang didukung.
 - Umur source capture dalam jam untuk membuktikan freshness gate.
 
@@ -119,9 +128,10 @@ Manifest adalah indeks bukti, bukan sumber kebenaran cloud. Status tetap berasal
 
 1. WIF provider diperiksa dari effective Google Cloud configuration.
 2. Auth smoke berasal dari `PanganLens GCP auth smoke test` pada `main`.
-3. Bootstrap plan hash berasal dari executor plan-only yang direview sebelum apply.
-4. `SCHEMA_READY` berasal dari metadata-only bootstrap verifier pada `main`.
-5. `READY` dan source freshness berasal dari BigQuery readiness inspector pada `main`.
-6. Workflow provenance berasal dari metadata GitHub Actions run yang sesuai.
+3. Bootstrap plan hash berasal dari artifact `PanganLens bootstrap plan` pada `main`, lengkap dengan run provenance.
+4. Plan dan schema verification harus memakai head commit yang sama.
+5. `SCHEMA_READY` berasal dari metadata-only bootstrap verifier pada `main`.
+6. `READY` dan source freshness berasal dari BigQuery readiness inspector pada `main`.
+7. Workflow provenance berasal dari metadata GitHub Actions run yang sesuai.
 
 Production ingestion dan recurring dashboard refresh tetap tidak boleh diaktifkan hanya karena manifest valid. Semua gate Issue #48 tetap berlaku, termasuk IAM minimum privilege, mapping review, duplicate and conflict controls, data quality, publish state, mart checks, source health, dan cost boundary.

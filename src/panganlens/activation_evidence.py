@@ -18,6 +18,7 @@ COMMIT_SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 EXPECTED_BRANCH = "main"
 EXPECTED_EVENT = "workflow_dispatch"
 AUTH_SMOKE_WORKFLOW = ".github/workflows/gcp_auth_smoke.yml"
+BOOTSTRAP_PLAN_WORKFLOW = ".github/workflows/bootstrap_plan.yml"
 SCHEMA_VERIFICATION_WORKFLOW = ".github/workflows/bootstrap_schema_verification.yml"
 READINESS_WORKFLOW = ".github/workflows/bigquery_readiness.yml"
 FORBIDDEN_KEY_PARTS = (
@@ -184,6 +185,17 @@ def _validate_bootstrap(evidence: Mapping[str, Any], errors: list[str]) -> None:
     if not isinstance(plan_sha256, str) or not SHA256_PATTERN.fullmatch(plan_sha256):
         errors.append("bootstrap.plan_sha256: must be lowercase SHA-256")
 
+    if "plan_run_id" in bootstrap:
+        _validate_run_id(bootstrap.get("plan_run_id"), "bootstrap.plan_run_id", errors)
+
+    _validate_optional_run_provenance(
+        bootstrap,
+        path="bootstrap.plan",
+        expected_workflow=BOOTSTRAP_PLAN_WORKFLOW,
+        errors=errors,
+        prefix="plan_",
+    )
+
     if "schema_verification_run_id" in bootstrap:
         _validate_run_id(
             bootstrap.get("schema_verification_run_id"),
@@ -202,6 +214,17 @@ def _validate_bootstrap(evidence: Mapping[str, Any], errors: list[str]) -> None:
         errors=errors,
         prefix="schema_verification_",
     )
+
+    plan_head_sha = bootstrap.get("plan_head_sha")
+    schema_head_sha = bootstrap.get("schema_verification_head_sha")
+    if (
+        isinstance(plan_head_sha, str)
+        and isinstance(schema_head_sha, str)
+        and plan_head_sha != schema_head_sha
+    ):
+        errors.append(
+            "bootstrap: plan and schema verification must use the same head commit"
+        )
 
 
 def _validate_readiness(
@@ -268,6 +291,14 @@ def _validate_completion(evidence: Mapping[str, Any], errors: list[str]) -> None
             errors=errors,
         )
     if isinstance(bootstrap, Mapping):
+        _validate_run_id(bootstrap.get("plan_run_id"), "bootstrap.plan_run_id", errors)
+        _require_run_provenance(
+            bootstrap,
+            path="bootstrap.plan",
+            expected_workflow=BOOTSTRAP_PLAN_WORKFLOW,
+            errors=errors,
+            prefix="plan_",
+        )
         _require_run_provenance(
             bootstrap,
             path="bootstrap.schema_verification",

@@ -40,24 +40,33 @@ def test_complete_manifest_requires_real_success_states_and_run_provenance():
     auth_smoke.update(_run_provenance(".github/workflows/gcp_auth_smoke.yml"))
 
     readiness = {
-        "run_id": 103,
+        "run_id": 104,
         "status": "READY",
         "latest_source_capture_age_hours": 12,
     }
     readiness.update(_run_provenance(".github/workflows/bigquery_readiness.yml"))
 
-    bootstrap_provenance = _run_provenance(
+    plan_provenance = _run_provenance(
+        ".github/workflows/bootstrap_plan.yml",
+        head_sha="b" * 40,
+    )
+    schema_provenance = _run_provenance(
         ".github/workflows/bootstrap_schema_verification.yml",
         head_sha="b" * 40,
     )
     bootstrap = {
         "plan_sha256": "c" * 64,
-        "schema_verification_run_id": 102,
+        "plan_run_id": 102,
+        "plan_workflow_path": plan_provenance["workflow_path"],
+        "plan_head_branch": plan_provenance["head_branch"],
+        "plan_head_sha": plan_provenance["head_sha"],
+        "plan_event": plan_provenance["event"],
+        "schema_verification_run_id": 103,
         "schema_status": "SCHEMA_READY",
-        "schema_verification_workflow_path": bootstrap_provenance["workflow_path"],
-        "schema_verification_head_branch": bootstrap_provenance["head_branch"],
-        "schema_verification_head_sha": bootstrap_provenance["head_sha"],
-        "schema_verification_event": bootstrap_provenance["event"],
+        "schema_verification_workflow_path": schema_provenance["workflow_path"],
+        "schema_verification_head_branch": schema_provenance["head_branch"],
+        "schema_verification_head_sha": schema_provenance["head_sha"],
+        "schema_verification_event": schema_provenance["event"],
     }
 
     manifest.update(
@@ -96,7 +105,8 @@ def test_complete_manifest_rejects_success_without_run_provenance():
     result = validate_activation_evidence(manifest, require_complete=True)
 
     assert result.status == "INVALID"
-    assert sum("provenance is required" in error for error in result.errors) == 12
+    assert sum("provenance is required" in error for error in result.errors) == 16
+    assert any("bootstrap.plan_run_id" in error for error in result.errors)
 
 
 def test_manifest_rejects_wrong_workflow_branch_event_or_commit_sha():
@@ -117,6 +127,48 @@ def test_manifest_rejects_wrong_workflow_branch_event_or_commit_sha():
     assert any("expected main" in error for error in result.errors)
     assert any("40-character commit SHA" in error for error in result.errors)
     assert any("expected workflow_dispatch" in error for error in result.errors)
+
+
+def test_manifest_rejects_bootstrap_plan_from_wrong_workflow():
+    manifest = _base_manifest()
+    manifest["bootstrap"] = {
+        "plan_sha256": "a" * 64,
+        "plan_run_id": 102,
+        "plan_workflow_path": ".github/workflows/quality.yml",
+        "plan_head_branch": "main",
+        "plan_head_sha": "b" * 40,
+        "plan_event": "workflow_dispatch",
+    }
+
+    result = validate_activation_evidence(manifest)
+
+    assert result.status == "INVALID"
+    assert any("bootstrap.plan.workflow_path" in error for error in result.errors)
+
+
+def test_manifest_rejects_plan_and_schema_verification_from_different_commits():
+    manifest = _base_manifest()
+    manifest["bootstrap"] = {
+        "plan_sha256": "a" * 64,
+        "plan_run_id": 102,
+        "plan_workflow_path": ".github/workflows/bootstrap_plan.yml",
+        "plan_head_branch": "main",
+        "plan_head_sha": "b" * 40,
+        "plan_event": "workflow_dispatch",
+        "schema_verification_run_id": 103,
+        "schema_status": "SCHEMA_READY",
+        "schema_verification_workflow_path": (
+            ".github/workflows/bootstrap_schema_verification.yml"
+        ),
+        "schema_verification_head_branch": "main",
+        "schema_verification_head_sha": "c" * 40,
+        "schema_verification_event": "workflow_dispatch",
+    }
+
+    result = validate_activation_evidence(manifest)
+
+    assert result.status == "INVALID"
+    assert any("same head commit" in error for error in result.errors)
 
 
 def test_ready_manifest_requires_source_freshness_evidence():
@@ -195,6 +247,7 @@ def test_manifest_rejects_invalid_plan_hash_and_run_ids():
             "auth_smoke": {"run_id": 0, "conclusion": "success"},
             "bootstrap": {
                 "plan_sha256": "NOT-A-HASH",
+                "plan_run_id": 0,
                 "schema_verification_run_id": -1,
                 "schema_status": "SCHEMA_READY",
             },
@@ -205,4 +258,4 @@ def test_manifest_rejects_invalid_plan_hash_and_run_ids():
 
     assert result.status == "INVALID"
     assert any("lowercase SHA-256" in error for error in result.errors)
-    assert sum("positive integer" in error for error in result.errors) == 2
+    assert sum("positive integer" in error for error in result.errors) == 3
