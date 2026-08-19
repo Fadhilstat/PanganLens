@@ -8,6 +8,7 @@ from pathlib import Path
 
 from google.cloud import bigquery
 
+from panganlens.schema_contract import WAREHOUSE_LOCATION
 from panganlens.warehouse.loader import PROJECT_ID_PATTERN
 
 EXPECTED_PRECHECK_NAMES = frozenset(
@@ -56,7 +57,7 @@ class BigQueryPromotionRunner:
         self,
         project_id: str,
         client: bigquery.Client | None = None,
-        location: str = "asia-southeast2",
+        location: str = WAREHOUSE_LOCATION,
         sql_dir: Path | None = None,
     ) -> None:
         if not PROJECT_ID_PATTERN.fullmatch(project_id):
