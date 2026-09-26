@@ -1,0 +1,2 @@
+Fundamental Control V12.15 GitHub native CI canary.
+Disposable marker only. No source authority transfer.
