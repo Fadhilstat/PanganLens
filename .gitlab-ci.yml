@@ -1,0 +1,28 @@
+# PanganLens repository quality checks for GitLab-hosted runners.
+# No cloud authentication, data ingestion, deployment, or scheduled jobs.
+default:
+  image: python:3.11-slim-bookworm
+
+stages:
+  - verify
+
+variables:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PIP_NO_CACHE_DIR: "1"
+  PYTHONDONTWRITEBYTECODE: "1"
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - when: never
+
+python_quality:
+  stage: verify
+  interruptible: true
+  timeout: 15m
+  script:
+    - python -m pip install -c constraints/ci.txt -e ".[dev]"
+    - pytest -q
+    - ruff check src scripts tests
+    - python -m compileall -q src scripts tests
