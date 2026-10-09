@@ -42,7 +42,6 @@ def test_gitlab_ci_never_inherits_cloud_or_deploy_authority():
         "include:",
         "trigger:",
         "deploy:",
-        "pages:",
         "schedule:",
         "curl ",
         "wget ",
@@ -50,3 +49,29 @@ def test_gitlab_ci_never_inherits_cloud_or_deploy_authority():
     assert all(item not in text for item in forbidden)
     assert "stage: verify" in text
     assert "- verify" in text
+
+
+def test_gitlab_pages_is_quality_gated_and_default_branch_only():
+    text = GITLAB_CI.read_text(encoding="utf-8")
+    job = text.split("deploy_portfolio_site:", maxsplit=1)[1]
+
+    assert "stage: deploy" in job
+    assert 'needs: ["python_quality", "frontend_quality"]' in job
+    assert "pages:" in job
+    assert "publish: website" in job
+    assert "CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH" in job
+    assert "test -s website/index.html" in job
+    assert "test -s website/data/dashboard.json" in job
+    assert "GCP_" not in job
+    assert "python -m pip install" not in job
+
+
+def test_gitlab_frontend_quality_uses_node_without_npm_install():
+    text = GITLAB_CI.read_text(encoding="utf-8")
+    job = text.split("frontend_quality:", maxsplit=1)[1].split(
+        "deploy_portfolio_site:", maxsplit=1
+    )[0]
+    assert "node:22-bookworm-slim" in job
+    assert "node --check website/app.js" in job
+    assert "node --test tests/price_playground.test.cjs" in job
+    assert "npm install" not in job

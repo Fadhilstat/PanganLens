@@ -1,29 +1,35 @@
 # HANDOFF
 
-## Purpose and product boundaries
+## Goal
 
-PanganLens Indonesia monitors public food-price changes, prioritizing PIHPS Bank Indonesia while its guarded source interface remains valid. The repository contains source validation, reviewed commodity and region mapping, BigQuery quality and publication contracts, and a static public dashboard. The website must not fabricate production prices when a validated snapshot is unavailable.
+Ship PanganLens as a strong, honest, inspectable data engineering portfolio. A publicly hosted preview is distinct from a live food-price data product.
 
-Phase 2 (Technical Implementation) remains open. [Cloud activation issue #48](https://github.com/Fadhilstat/PanganLens/issues/48) is an independent blocker. The GitLab CI milestone does not enable cloud activation, scheduled ingestion, or publication.
+## Source-of-truth recovery
 
-## Released to GitHub
+- GitHub canonical source: https://github.com/Fadhilstat/PanganLens.
+- GitLab target: https://gitlab.com/fadhilrusydih/panganlens.
+- Verified initial shared contents at GitHub SHA 6a731b14c4c4944b35ee35834cff399d5e543544 and GitLab SHA a4cfb5fcf7cd89132af36e2e4777f31048e5baad. Histories differ but all 149 file blob SHA values matched.
+- Retrieve fresh branch refs before writing: earlier SHAs are checkpoints, not permanent HEADs.
+- Cloud readiness is separate and tracked in GitHub issue #48. Never publish guessed live prices.
 
-- [Repository](https://github.com/Fadhilstat/PanganLens)
-- [PR #64](https://github.com/Fadhilstat/PanganLens/pull/64) merged 2026-10-09T18:00:37Z.
-- GitHub PR #64 merge commit: 9005b2a5fc5baa7b9e45a6cda552095b6b8b8349 (an ancestor marker, not the permanent main HEAD).
-- [Actions run #37970221878](https://github.com/Fadhilstat/PanganLens/actions/runs/37970221878): SUCCESS for Python tests, Ruff, compile, and PIHPS source probe.
-- GitLab CI job configuration, three contract tests, and documentation are present in the released GitHub tree.
+## Portfolio preview scope
 
-## Pending GitLab destination
+- Plain HTML/CSS/JS site serves a guarded production snapshot. As long as the snapshot is empty, the dashboard shows honest unavailable states.
+- Independent calculator accepts four visitor-entered amounts for movement and regional differences. It never reads external price data or sends input to a server.
+- Site includes an architecture summary and source link. README and docs/portfolio_case_study.md explain data pipeline, evidence, decisions, risk and remaining gaps.
+- Tests run in GitHub Actions and GitLab CI without VPS. GitLab Pages should deploy website/ only after Python and Node verify stages succeed on the default branch.
+- GitLab project Pages access control was private at last inspection. Public access requires checking the GitLab project's Pages setting and the deployed URL.
 
-The authenticated GitLab account fadhilrusydih has no verified PanganLens project in its accessible project list. The usual personal and group paths were also not found. As a result, GitLab import, CI pipeline, and merge cannot yet be validated. Do not create a false success claim or overwrite a different project.
+## Release method
 
-The connected GitLab actions can work with existing projects but do not expose project creation or importing. An authorized owner can use GitLab's **Import project > Repository by URL** interface, using the public source https://github.com/Fadhilstat/PanganLens.git. Choose the intended personal or group namespace. See [GitLab CI parity](docs/gitlab_ci_parity.md) for exact checks.
+1. Confirm working branch and source HEAD on GitHub. No force push.
+2. Inspect changed files and execute Node math tests, Python tests, lint and CI.
+3. With owner APPROVE PUSH and APPROVE MERGE, push feature branch and merge only after checks pass.
+4. Fetch exact changed files from merged GitHub main, apply to a new GitLab feature branch, run MR pipeline, and merge only on success. Do not rewrite GitLab's different commit ancestry.
+5. Compare GitHub and GitLab file path and blob SHA parity after merge.
+6. Check the actual GitLab Pages deployment and anonymous access. Do not invent Pages domain or claim public reachability without verification.
+7. Retain GCP and production data quality gates independently.
 
-A complete import already includes the GitHub-released GitLab CI files. Record the current GitHub main HEAD when importing; compare the imported GitLab default-branch SHA and full tree to that snapshot and inspect an actual GitLab pipeline result. Do not manufacture a merge request unless a real change is needed. If history diverges, stop and reconcile without force pushing.
+Rollback: revert the portfolio UI and CI Pages changes through reviewed pull/merge requests. No warehouse state or live snapshot is touched.
 
-## Safety and handoff
-
-No VPS, self-hosted runner, GCP role, service key, secret, live ingestion schedule, or deployment was introduced. Continue with least-privilege and data-quality requirements already documented.
-
-NEXT_ACTION: Establish the PanganLens GitLab project through the official GitLab import process, then verify its commit history and CI before declaring GitHub/GitLab synchronization complete.
+NEXT_ACTION: Complete CI-gated GitHub and GitLab PR/MR releases for the portfolio preview and check the real static-site deployment/access state.

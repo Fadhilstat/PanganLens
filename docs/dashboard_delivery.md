@@ -32,7 +32,7 @@ python scripts/export_dashboard_snapshot.py \
 
 The exporter reads only dashboard-facing views in `panganlens_mart` and applies a maximum-bytes-billed ceiling. Exact BigQuery NUMERIC values are serialized as decimal strings so the snapshot itself does not lose numeric precision. Formatting happens in the browser.
 
-The repository ships an empty snapshot instead of fabricated demo values. Until the first production snapshot is generated, the website clearly states that production data has not been published.
+The repository ships an empty snapshot instead of fabricated demo values. Until the first production snapshot is generated, the website clearly states that production data has not been published. A separate calculator on the website accepts four user-provided prices and computes changes without claiming any real PIHPS observations. It does not store user inputs or send them over the network.
 
 ## Publishing with GitHub Pages
 
@@ -46,3 +46,14 @@ A normal push deploys the snapshot already present in the repository and does no
 No service account and no service-account JSON key are required for this read-only refresh path. BigQuery refresh is accepted only from `main`.
 
 The refresh remains manual until direct WIF, production mappings, and readiness are validated. After those gates are green, a daily refresh schedule can be considered without changing the website architecture.
+
+
+## GitLab Pages portfolio preview
+
+The GitLab pipeline checks both Python and JavaScript before publishing the static directory. The deploy_portfolio_site job uses pages.publish to publish website/ only from the default branch; it does not contact BigQuery, run ingestion, or require a VPS.
+
+GitLab project access control was reported as private at the time of this portfolio preview implementation, even though the repository was public. Publishing artifacts does not guarantee anonymous access. Under GitLab **Settings > General > Visibility, project features, permissions**, check the Pages visibility setting and choose **Everyone with access** for a public project, then verify the actual Pages URL from **Deploy > Pages** in a logged-out browser. Do not assume a default Pages URL if GitLab uses a unique domain.
+
+GitHub Pages is a second optional static publishing route. The existing dashboard_pages.yml workflow requires the repository's Pages source to be set to GitHub Actions; a push of the website does not prove that deployment succeeded. Check the actual workflow conclusion and published URL before adding a public link to a portfolio.
+
+**Publication mode:** Portfolio preview only. No mock market data, no live-price claim. Warehouse activation and curated price publication remain separately approved operations.

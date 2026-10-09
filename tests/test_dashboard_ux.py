@@ -18,8 +18,11 @@ def test_dashboard_has_guided_reading_flow():
 def test_dashboard_does_not_depend_on_external_frontend_runtime():
     html = (WEBSITE / "index.html").read_text(encoding="utf-8")
 
-    assert "https://" not in html
     assert '<script src="app.js" defer></script>' in html
+    assert '<script src="price_playground.js" defer></script>' in html
+    assert '<link rel="stylesheet" href="styles.css">' in html
+    assert '<script src="https://' not in html
+    assert '<link rel="stylesheet" href="https://' not in html
     assert '<link rel="stylesheet" href="styles.css">' in html
 
 

@@ -2,42 +2,47 @@
 
 Updated: 2026-10-10 (Asia/Jakarta)
 Project: PanganLens Indonesia
-Phase: 2, Technical Implementation
-Milestone: GitLab CI quality parity and release handoff
-Status: GITHUB_MERGED_GITLAB_DESTINATION_MISSING
+Phase: 2 Technical Implementation, Phase 3 Repository/README, Phase 4 Portfolio Preview
+Current milestone: Trustworthy portfolio preview with user-input calculator and static Pages
+Status: RELEASE_CANDIDATE, requires live CI and Pages access verification
 
-## Verified repository state
+## Verified baseline before this milestone
 
-- Canonical repository: [Fadhilstat/PanganLens](https://github.com/Fadhilstat/PanganLens), public, default branch main.
-- [GitHub PR #64](https://github.com/Fadhilstat/PanganLens/pull/64) merged on 2026-10-09T18:00:37Z.
-- GitHub PR #64 merge commit in main history: 9005b2a5fc5baa7b9e45a6cda552095b6b8b8349. The main HEAD may advance after later PRs.
-- Approved feature commit: f0636811843b6b07b6cf65cfe1b3e8e1aebde6d6.
-- Source base: c97ea82a3fb7308e93a49fdcfd8bb717911d3dce.
-- [GitHub Actions run #37970221878](https://github.com/Fadhilstat/PanganLens/actions/runs/37970221878) finished SUCCESS.
-- The PR jobs named tests and live-pihps-probe completed successfully.
-- GitLab CI files and continuity documents are present on GitHub main.
-- Connected GitLab account: fadhilrusydih.
-- On 2026-10-10 the GitLab account had 11 visible membership projects but no PanganLens repository.
-- Exact personal and established group PanganLens path lookups also returned not found. Do not reuse an unrelated GitLab project.
+- GitHub: https://github.com/Fadhilstat/PanganLens
+- GitHub source main: 6a731b14c4c4944b35ee35834cff399d5e543544.
+- GitLab: https://gitlab.com/fadhilrusydih/panganlens
+- GitLab main before this milestone: a4cfb5fcf7cd89132af36e2e4777f31048e5baad.
+- GitLab MR !1 merged; source file blob SHA parity was verified for all 149 files.
+- GitLab main pipeline #2931733482: SUCCESS (previous, pre-milestone code).
+- GitHub and GitLab commit SHA differs due to content-snapshot import rather than shared history.
+- Public snapshot website/data/dashboard.json: empty, publish_state null.
+- GCP activation from GitHub issue #48: not completed and remains independent.
 
-## Quality evidence and limits
+## Release candidate changes
 
-- GitHub PR quality checks: PASS (pytest, Ruff, Python compile).
-- GitHub live PIHPS interface probe: PASS for that run only.
-- Local GitLab CI contract tests: PASS (3/3).
-- GitLab CI lint: NOT_RUN, no verified target project.
-- GitLab CI pipeline or MR: NOT_RUN, no verified target project.
-- GitLab commit/tree parity: NOT_VERIFIED.
-- GCP activation, end-to-end production ingestion, and dashboard publication: NOT_VERIFIED by this milestone.
-- The last inspected public dashboard JSON had no published national, province, or publish-state records.
-- [GitHub Issue #48](https://github.com/Fadhilstat/PanganLens/issues/48) remains the separate cloud activation gate.
+- Website: input-only positive-rupiah calculator, explicit provenance, an architecture case-study section, mobile nav, skip link, focus states and reduced motion.
+- Numeric fixes: zero and missing values are not silently displayed as valid production observations.
+- README: recruiter-facing product narrative, real architecture, reproducible test commands and limitations.
+- Documentation: portfolio case study and Pages release procedures.
+- GitHub Actions: separate built-in Node calculation test gate.
+- GitLab CI: verify stages for Python and Node, default-branch-only static Pages publish after both pass.
+- No new runtime dependencies, cloud credentials, GCP setup, production ingestion or VPS.
 
-## Release boundaries
+## QA evidence
 
-- No VPS, self-hosted runners, GCP configuration changes, or deployment.
-- No GitLab project has been created or imported by the connected tools.
-- The user approved push and merge for this continuation; still require a valid destination, verified diff, and green CI before any future GitLab merge.
-- Do not force push, overwrite divergent repositories, or invent a successful GitLab pipeline.
-- Official GitLab Repository by URL import steps are recorded in [docs/gitlab_ci_parity.md](docs/gitlab_ci_parity.md).
+- Local Node calculation tests: PASS (7 tests).
+- Local JavaScript syntax check for the new calculator: PASS.
+- GitHub full CI for this candidate: NOT_RUN until PR branch is pushed.
+- GitLab CI and Pages pipeline for this candidate: NOT_RUN until MR and main pushes.
+- Browser screenshots, GitHub Pages deploy, public GitLab Pages access: NOT_VERIFIED.
+- Final GitHub/GitLab file-hash parity: NOT_VERIFIED until both changes merge.
+- Full warehouse production data path: NOT_RUN and NOT_CLAIMED.
 
-NEXT_ACTION: Import the public GitHub repository https://github.com/Fadhilstat/PanganLens.git into an approved GitLab namespace, or provide an existing verified matching project. Once it exists, record GitHub main HEAD immediately before import; compare GitLab imported HEAD and complete file tree to that snapshot, check CI lint and GitLab pipeline before calling the repositories synchronized.
+## Safety gates
+
+- Approved: APPROVE PUSH and APPROVE MERGE for this milestone, confirmed in this chat.
+- Still require reviewed diff, passing Python and Node CI, and verified MR head before each merge.
+- GitLab Pages access level was private when inspected; CI deployment alone does not make the site publicly viewable.
+- Keep BigQuery snapshot empty until source, mapping, warehouse and publish-state gates are verified.
+
+NEXT_ACTION: Push a single review branch to GitHub, run quality CI, merge only on green checks, then sync the exact changed files to a GitLab MR, verify its pipeline and static Pages deployment, and inspect published URLs.

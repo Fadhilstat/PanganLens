@@ -3,11 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="PanganLens Indonesia, dashboard publik untuk memahami perubahan harga pangan dan perbedaan harga antarprovinsi.">
+  <meta name="description" content="PanganLens Indonesia: studi kasus data engineering harga pangan, dashboard transparan, dan latihan analisis perubahan harga.">
+  <meta name="theme-color" content="#356859">
   <title>PanganLens Indonesia</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Lewati ke konten</a>
   <header class="site-header">
     <div>
       <a class="brand" href="#ringkasan">PanganLens Indonesia</a>
@@ -17,16 +19,18 @@
       <a href="#ringkasan">Ringkasan</a>
       <a href="#komoditas">Komoditas</a>
       <a href="#wilayah">Wilayah</a>
+      <a href="#simulasi">Coba rumus</a>
+      <a href="#studi-kasus">Studi kasus</a>
       <a href="#metodologi">Tentang data</a>
     </nav>
   </header>
 
-  <main>
+  <main id="main-content">
     <section class="hero" id="ringkasan">
       <div>
         <p class="eyebrow">MONITOR HARGA PANGAN</p>
         <h1>Pahami perubahan harga tanpa tenggelam dalam angka.</h1>
-        <p class="hero-copy">Mulai dari ringkasan nasional, pilih komoditas yang ingin dilihat, lalu bandingkan kondisinya antarprovinsi. Setiap angka yang tampil berasal dari data yang sudah melewati pemeriksaan kualitas.</p>
+        <p class="hero-copy">Mulai dari ringkasan nasional, pilih komoditas yang ingin dilihat, lalu bandingkan kondisinya antarprovinsi. Angka produksi hanya tampil setelah lolos pemeriksaan kualitas. Saat belum tersedia, kamu bisa mencoba rumus perhitungannya sendiri.</p>
       </div>
       <aside class="freshness-card" aria-live="polite">
         <span class="status-dot" id="status-dot"></span>
@@ -55,10 +59,10 @@
     </section>
 
     <section class="kpi-grid" aria-label="Indikator utama">
-      <article class="kpi-card"><p>Komoditas terpantau</p><strong id="commodity-count">0</strong><span>komoditas pada snapshot terbaru</span></article>
+      <article class="kpi-card"><p>Komoditas terpantau</p><strong id="commodity-count">-</strong><span>komoditas pada snapshot terbaru</span></article>
       <article class="kpi-card kpi-up"><p>Kenaikan terbesar</p><strong id="top-rise">-</strong><span id="top-rise-detail">Belum tersedia</span></article>
       <article class="kpi-card kpi-down"><p>Penurunan terbesar</p><strong id="top-fall">-</strong><span id="top-fall-detail">Belum tersedia</span></article>
-      <article class="kpi-card"><p>Provinsi tercakup</p><strong id="province-count">0</strong><span>provinsi pada snapshot terbaru</span></article>
+      <article class="kpi-card"><p>Provinsi tercakup</p><strong id="province-count">-</strong><span>provinsi pada snapshot terbaru</span></article>
     </section>
 
     <section class="panel" id="komoditas">
@@ -102,6 +106,65 @@
       <p class="empty-copy" id="region-empty">Data wilayah akan muncul setelah snapshot produksi tersedia.</p>
     </section>
 
+    <section class="calculator-lab" id="simulasi" aria-labelledby="lab-title">
+      <div class="lab-context">
+        <p class="eyebrow">LATIHAN ANALISIS</p>
+        <h2 id="lab-title">Coba rumusnya dengan angkamu.</h2>
+        <p>PanganLens belum menayangkan harga produksi. Kamu tetap bisa mencoba dua rumus yang dipakai untuk memahami perubahan harga. Semua angka di bawah berasal dari inputmu sendiri, bukan data PIHPS.</p>
+        <div class="formula-notes">
+          <p><strong>Perubahan harga</strong> = (harga terbaru - harga sebelumnya) / harga sebelumnya.</p>
+          <p><strong>Selisih wilayah</strong> = (harga wilayah - rata-rata provinsi) / rata-rata provinsi.</p>
+        </div>
+      </div>
+      <form id="price-calculator" class="calculator-form" novalidate>
+        <fieldset>
+          <legend>Perubahan harga</legend>
+          <div class="input-pair">
+            <label for="price-previous">Harga sebelumnya (Rp)
+              <input id="price-previous" name="previous" type="number" inputmode="decimal" min="1" step="any" placeholder="Masukkan harga" required>
+            </label>
+            <label for="price-current">Harga terbaru (Rp)
+              <input id="price-current" name="current" type="number" inputmode="decimal" min="1" step="any" placeholder="Masukkan harga" required>
+            </label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Perbandingan wilayah</legend>
+          <div class="input-pair">
+            <label for="price-average">Rata-rata provinsi (Rp)
+              <input id="price-average" name="average" type="number" inputmode="decimal" min="1" step="any" placeholder="Masukkan harga" required>
+            </label>
+            <label for="price-region">Harga wilayah (Rp)
+              <input id="price-region" name="region" type="number" inputmode="decimal" min="1" step="any" placeholder="Masukkan harga" required>
+            </label>
+          </div>
+        </fieldset>
+        <div class="calculator-actions">
+          <button class="calc-submit" type="submit">Hitung perbandingan</button>
+          <button class="calc-reset" type="reset">Kosongkan</button>
+        </div>
+        <div class="calculator-results" aria-live="polite" aria-atomic="true">
+          <p><span>Perubahan harga</span><strong id="calc-movement">Belum dihitung</strong></p>
+          <p><span>Selisih wilayah</span><strong id="calc-region">Belum dihitung</strong></p>
+        </div>
+        <p class="calculator-status" id="calc-message" role="status">Masukkan nilaimu untuk mencoba logika perhitungan.</p>
+      </form>
+    </section>
+
+    <section class="case-study" id="studi-kasus" aria-labelledby="case-title">
+      <div>
+        <p class="eyebrow">STUDI KASUS PORTFOLIO</p>
+        <h2 id="case-title">Dari harga mentah ke keputusan yang bisa diaudit.</h2>
+        <p>PanganLens adalah proyek data engineering dan analitik harga pangan Indonesia. Desain pipeline menahan data yang tidak valid sebelum masuk ke tampilan publik.</p>
+      </div>
+      <div class="case-detail">
+        <p><strong>Alur data</strong><span>PIHPS → pemeriksaan sumber → mapping komoditas dan wilayah → warehouse 3NF → quality gate → curated mart → snapshot website.</span></p>
+        <p><strong>Keputusan penting</strong><span>Duplikat dan konflik ditangani sebelum publikasi. Data yang belum siap tidak diubah menjadi angka contoh.</span></p>
+        <p><strong>Status aktual</strong><span>Implementasi teknis dan pemeriksaan CI berjalan. Aktivasi warehouse produksi dan refresh harga publik masih menunggu verifikasi.</span></p>
+        <a href="https://github.com/Fadhilstat/PanganLens" target="_blank" rel="noopener noreferrer">Lihat kode dan pengujian di GitHub</a>
+      </div>
+    </section>
+
     <section class="methodology" id="metodologi">
       <div><p class="eyebrow">TENTANG DATA</p><h2>Angka yang tampil harus bisa ditelusuri.</h2></div>
       <div class="method-grid">
@@ -114,8 +177,9 @@
   </main>
 
   <footer>
-    <p>PanganLens Indonesia. Dashboard informasi publik, bukan alat penetapan harga atau rekomendasi transaksi.</p>
+    <p>PanganLens Indonesia. Studi kasus data publik dan latihan perhitungan. Bukan alat penetapan harga atau rekomendasi transaksi.</p>
   </footer>
   <script src="app.js" defer></script>
+  <script src="price_playground.js" defer></script>
 </body>
 </html>
