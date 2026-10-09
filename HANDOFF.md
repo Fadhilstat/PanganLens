@@ -10,7 +10,7 @@ Phase 2 (Technical Implementation) remains open. [Cloud activation issue #48](ht
 
 - [Repository](https://github.com/Fadhilstat/PanganLens)
 - [PR #64](https://github.com/Fadhilstat/PanganLens/pull/64) merged 2026-10-09T18:00:37Z.
-- Released main SHA: 9005b2a5fc5baa7b9e45a6cda552095b6b8b8349.
+- GitHub PR #64 merge commit: 9005b2a5fc5baa7b9e45a6cda552095b6b8b8349 (an ancestor marker, not the permanent main HEAD).
 - [Actions run #37970221878](https://github.com/Fadhilstat/PanganLens/actions/runs/37970221878): SUCCESS for Python tests, Ruff, compile, and PIHPS source probe.
 - GitLab CI job configuration, three contract tests, and documentation are present in the released GitHub tree.
 
@@ -20,7 +20,7 @@ The authenticated GitLab account fadhilrusydih has no verified PanganLens projec
 
 The connected GitLab actions can work with existing projects but do not expose project creation or importing. An authorized owner can use GitLab's **Import project > Repository by URL** interface, using the public source https://github.com/Fadhilstat/PanganLens.git. Choose the intended personal or group namespace. See [GitLab CI parity](docs/gitlab_ci_parity.md) for exact checks.
 
-A complete import already includes the GitHub-released GitLab CI files. Confirm the imported default-branch SHA or full tree parity and inspect the actual GitLab pipeline result. Do not manufacture a merge request unless a real change is needed. If history diverges, stop and reconcile without force pushing.
+A complete import already includes the GitHub-released GitLab CI files. Record the current GitHub main HEAD when importing; compare the imported GitLab default-branch SHA and full tree to that snapshot and inspect an actual GitLab pipeline result. Do not manufacture a merge request unless a real change is needed. If history diverges, stop and reconcile without force pushing.
 
 ## Safety and handoff
 
