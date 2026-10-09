@@ -1,22 +1,131 @@
 # PanganLens Indonesia
 
-PanganLens Indonesia is a public-data analytics project for monitoring food price movements across Indonesia. The project is being built as a maintainable data product with a validated BigQuery warehouse and a Looker Studio dashboard designed for clear public use.
+**An auditable food-price analytics project built around public Indonesian data.**
 
-## Current status
+PanganLens explores a practical question: *how can a food-price dashboard make trends understandable without quietly publishing unverified numbers?* It combines guarded source ingestion, a normalized BigQuery model, mapping review, quality gates, and a lightweight public-facing website.
 
-The project is in Phase 2: Technical Implementation. The current repository foundation focuses on data ingestion contracts, a normalized 3NF warehouse model, duplicate and conflict controls, and data quality checks before any record can reach the dashboard layer.
+**Portfolio status (10 October 2026):** a portfolio preview is under development. The repository includes working ingestion and quality-control code, but **does not yet publish verified live food prices**. The checked-in dashboard snapshot is deliberately empty. The website includes a separate interactive exercise that calculates percentage changes using visitor-provided inputs only.
 
-## Data source strategy
+[Explore the website source](website/) | [Read the case study](docs/portfolio_case_study.md) | [Inspect quality gates](docs/data_safety_contract.md) | [See cloud activation criteria](https://github.com/Fadhilstat/PanganLens/issues/48)
 
-PIHPS Bank Indonesia is the primary food price source. The ingestion layer prioritizes a validated public data interface, then official report or download routes, with HTML scraping reserved as the last fallback. Undocumented website endpoints are not treated as stable public APIs until repeated live checks confirm their behavior.
+## Why this project exists
 
-## Repository map
+Raw price feeds can be incomplete, revised, duplicated, or mapped inconsistently between commodities and provinces. A polished chart cannot make a bad data contract trustworthy. The core design principle here is to **stop invalid records before they become public statistics**, while keeping the calculation and publication logic explainable.
 
-```text
-scripts/        Source probes and operational utilities
-sql/            BigQuery datasets, 3NF core schema, and quality checks
-src/panganlens/ Python package for domain, ingestion, validation, and warehouse logic
-tests/          Automated tests for data contracts and repository rules
-```
+**Intended users:** people comparing Indonesian food-price movements, policy researchers, journalists, and analysts. **Portfolio audience:** recruiters and engineering reviewers who want to inspect working source code, reproducible checks, security boundaries, and deliberate tradeoffs.
 
-More complete project documentation will be written after the technical implementation is stable and validated.
+## What visitors can use now
+
+- **Guided dashboard:** national commodity and provincial comparison components, clearly showing unavailable states until a valid curated snapshot exists.
+- **Interactive price exercise:** visitors enter four positive rupiah amounts, then see the percentage change and deviation from a provincial average. Calculations run locally, are tested, and never claim to be PIHPS observations.
+- **Transparent case study:** architecture, source safeguards, important decisions, current blockers, and exact evidence for testing.
+
+The interactive exercise uses the following formulas:
+
+~~~text
+price_change_pct = (current_price - previous_price) / previous_price
+province_gap_pct = (region_price - province_average) / province_average
+~~~
+
+Both denominators must be positive. The browser checks for empty, zero, negative, malformed, and non-finite input. Display formatting is separate from numeric calculation.
+
+## Actual architecture
+
+~~~text
+PIHPS Bank Indonesia website interface (guarded, not a stable public API)
+    |
+    v
+Transport and schema checks + source fingerprint
+    |
+    v
+Parse and validate + exact duplicates and conflicting values
+    |
+    v
+Canonical commodity / province mapping review
+    |
+    v
+BigQuery raw -> staging -> normalized core (3NF)
+    |
+    v
+Pre-promotion and post-load quality assertions
+    |
+    v
+Curated mart + publish-state checks
+    |
+    +--> Looker Studio (proposed, curated views only)
+    |
+    +--> Verified JSON snapshot -> static website (production data pending)
+~~~
+
+The source client refuses unreviewed transport/schema changes. Production bootstrap has its own plan-hash and least-privilege authorization boundaries. Data publication does not follow from a successful source request alone.
+
+## Technology and implementation
+
+| Layer | Technology / approach |
+| --- | --- |
+| Ingestion | Python, requests, guarded PIHPS interface and parser |
+| Modeling | BigQuery SQL, normalized 3NF, curated semantic views |
+| Data quality | Mapping review, duplicate/conflict quarantine, publish-state gate |
+| Frontend | Plain HTML, CSS, JavaScript; no framework or browser credentials |
+| Test suite | pytest, Ruff, Python compile, Node built-in test runner |
+| Delivery | GitHub Actions and GitLab CI; static Pages deployments |
+| Secrets | No key files or cloud credentials in the frontend or source tree |
+
+This is intentionally a small static frontend, not an always-on server. A live data pipeline requires separate cloud setup and quality approvals described in the existing docs.
+
+## Reproduce checks
+
+Requires Python 3.11+; for the browser calculation tests, Node 22+.
+
+~~~bash
+python -m pip install -c constraints/ci.txt -e ".[dev]"
+pytest -q
+ruff check src scripts tests
+python -m compileall -q src scripts tests
+node --check website/app.js
+node --check website/price_playground.js
+node --test tests/price_playground.test.cjs
+~~~
+
+To view the static site locally, run:
+
+~~~bash
+python -m http.server 8000 --directory website
+~~~
+
+Then open http://localhost:8000. There is no authentication, running database, background service, VPS, or secret needed for the preview.
+
+## Repository navigation
+
+| Path | Purpose |
+| --- | --- |
+| [website/](website/) | Accessible dashboard, price calculation exercise, empty/error states |
+| [src/panganlens/](src/panganlens/) | Domain models, pipeline code, mapping, warehouse and readiness |
+| [sql/](sql/) | Raw/staging/core structures, promotion gates, semantic views |
+| [tests/](tests/) | Data contracts, pipeline controls, security, frontend tests |
+| [docs/portfolio_case_study.md](docs/portfolio_case_study.md) | Problem, decisions, QA, remaining risks |
+| [docs/dashboard_delivery.md](docs/dashboard_delivery.md) | Static hosting, snapshot policy, release conditions |
+| [RUN_STATE.md](RUN_STATE.md) | Most recent execution checkpoint |
+| [HANDOFF.md](HANDOFF.md) | Safe continuation instructions |
+
+## Evidence and honest limitations
+
+**Implemented:** guarded source interactions, numeric parsing, duplicate handling, review gates, BigQuery schemas, snapshot exporter, safety tests, and a public-site UI. CI checks are configured in GitHub and GitLab.
+
+**Not claimed:** live synchronized prices, production data completeness, a successful production BigQuery refresh, cost-free unlimited cloud usage, or an operational Looker Studio link. These require separately verified evidence. The existing [cloud activation checklist](https://github.com/Fadhilstat/PanganLens/issues/48) must remain intact.
+
+The website remains safe to publish as a **portfolio preview**: no unsupported market numbers are displayed. GitLab and GitHub have matching file contents at the last checked baseline, but not identical commit histories. Future releases should compare file blob hashes and run both platforms' CI before updating each main branch.
+
+## Roadmap
+
+**NOW:** Publish the preview website, verify both CI pipelines, and make sure anonymous visitors can access it.
+
+**NEXT:** Obtain reviewed mappings, activate BigQuery with short-lived identity, and publish the first validated price snapshot.
+
+**LATER:** Connect curated marts to Looker Studio and add longer price time-series with labeled observation gaps.
+
+**OPTIONAL:** Expand accessibility and user research, and build a traceable release monitor.
+
+## Author
+
+Personal data engineering and analytics portfolio project. [LinkedIn](https://www.linkedin.com/in/fadhilrusydi31/) | [GitHub](https://github.com/Fadhilstat) | [GitLab](https://gitlab.com/fadhilrusydih).

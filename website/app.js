@@ -27,8 +27,8 @@ function render() {
   }
 
   const commodities = [...new Map(national.map(row => [row.commodity_id, row.commodity_name])).entries()];
-  document.getElementById("commodity-count").textContent = String(commodities.length);
-  document.getElementById("province-count").textContent = String(new Set(provinces.map(row => row.province_id)).size);
+  document.getElementById("commodity-count").textContent = commodities.length ? String(commodities.length) : "-";
+  document.getElementById("province-count").textContent = national.length && provinces.length ? String(new Set(provinces.map(row => row.province_id)).size) : "-";
   renderMovers(national);
   renderCommoditySelect(commodities);
 }
@@ -66,6 +66,7 @@ function renderCommoditySelect(commodities) {
   const select = document.getElementById("commodity-select");
   select.innerHTML = "";
   if (!commodities.length) {
+    state.selectedCommodity = null;
     const option = document.createElement("option");
     option.textContent = "Belum ada data";
     select.appendChild(option);
@@ -194,12 +195,13 @@ function renderRegions(rows) {
 }
 
 function formatPrice(value) {
+  if (value === null || value === undefined || value === "") return "-";
   const number = Number(value);
   return Number.isFinite(number) ? rupiah.format(number) : "-";
 }
 
 function finite(value) {
-  return value !== null && value !== undefined && Number.isFinite(Number(value));
+  return value !== null && value !== undefined && value !== "" && Number.isFinite(Number(value));
 }
 
 function showNotice(message) {

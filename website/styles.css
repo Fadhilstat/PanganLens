@@ -100,7 +100,9 @@ footer { max-width: 1180px; margin: 0 auto; padding: 0 24px 46px; color: var(--m
 }
 @media (max-width: 620px) {
   .site-header { padding-top: 20px; }
-  nav { display: none; }
+  .site-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+  nav { display: flex; width: 100%; gap: 8px 16px; }
+  nav a { min-height: 44px; display: inline-flex; align-items: center; }
   main { padding-left: 16px; padding-right: 16px; }
   .hero { padding-top: 36px; }
   h1 { font-size: 46px; }
@@ -110,4 +112,51 @@ footer { max-width: 1180px; margin: 0 auto; padding: 0 24px 46px; color: var(--m
   .region-row { grid-template-columns: 1fr auto; }
   .region-bar { grid-column: 1 / -1; }
   .region-value { text-align: left; }
+}
+
+/* Portfolio walkthrough and user-input-only analysis. Existing PanganLens palette retained. */
+.skip-link { position: absolute; top: -70px; left: 18px; z-index: 5; background: var(--text); color: #fff; padding: 12px; }
+.skip-link:focus { top: 12px; }
+:focus-visible { outline: 3px solid var(--green); outline-offset: 3px; }
+main section { scroll-margin-top: 24px; }
+.calculator-lab { margin-top: 24px; padding: clamp(20px, 4vw, 36px); display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.2fr); gap: clamp(24px, 4vw, 56px); border: 1px solid #cddbd1; border-radius: 18px; background: var(--green-soft); }
+.calculator-lab h2 { max-width: 420px; font-size: clamp(29px, 3vw, 39px); }
+.lab-context > p:not(.eyebrow) { max-width: 450px; line-height: 1.7; color: #394a40; }
+.formula-notes { margin-top: 32px; padding-top: 18px; border-top: 1px solid #bfd0c5; }
+.formula-notes p { margin: 0 0 14px; line-height: 1.55; font-size: 13px; }
+.formula-notes strong { display: block; margin-bottom: 2px; }
+.calculator-form { background: var(--surface); padding: clamp(16px, 2vw, 26px); border: 1px solid var(--line); border-radius: 13px; min-width: 0; }
+.calculator-form fieldset { border: 0; margin: 0 0 18px; padding: 0; min-width: 0; }
+.calculator-form legend { font-weight: 750; font-size: 15px; margin-bottom: 12px; }
+.input-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.input-pair label { display: block; min-width: 0; font-size: 12px; color: #394a40; font-weight: 650; }
+.input-pair input { display: block; width: 100%; min-height: 46px; margin-top: 6px; border-radius: 8px; border: 1px solid #a7b8af; padding: 10px; font: inherit; color: var(--text); background: #fff; }
+.input-pair input:focus-visible { border-color: var(--green); }
+.calculator-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+.calculator-actions button { min-height: 44px; padding: 10px 16px; border-radius: 8px; font: inherit; font-weight: 700; cursor: pointer; }
+.calc-submit { border: 1px solid var(--green); color: white; background: var(--green); }
+.calc-submit:hover { background: #284e43; }
+.calc-reset { border: 1px solid #b8c5bd; background: white; color: var(--text); }
+.calc-reset:hover { background: var(--bg); }
+.calculator-results { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 20px; }
+.calculator-results p { margin: 0; padding: 13px; border-radius: 8px; background: var(--bg); min-width: 0; overflow-wrap: anywhere; }
+.calculator-results span { display: block; font-size: 12px; color: var(--muted); }
+.calculator-results strong { display: block; margin-top: 9px; font-size: 17px; font-variant-numeric: tabular-nums; }
+.calculator-status { min-height: 24px; margin: 12px 0 0; font-size: 12px; line-height: 1.5; color: #394a40; }
+.case-study { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.2fr); gap: clamp(24px, 4vw, 54px); margin: 24px 0; padding: clamp(22px, 4vw, 38px); border: 1px solid var(--line); border-radius: 18px; background: #fff; }
+.case-study > div > p:not(.eyebrow) { max-width: 500px; color: var(--muted); font-size: 14px; line-height: 1.7; }
+.case-detail p { border-top: 1px solid var(--line); padding: 14px 0; margin: 0; display: grid; grid-template-columns: 145px minmax(0, 1fr); gap: 18px; line-height: 1.55; font-size: 13px; }
+.case-detail span { color: var(--muted); }
+.case-detail a { display: inline-flex; align-items: center; min-height: 44px; color: var(--green); font-weight: 750; text-underline-offset: 4px; font-size: 13px; }
+@media (max-width: 900px) {
+  .calculator-lab, .case-study { grid-template-columns: 1fr; }
+}
+@media (max-width: 620px) {
+  .input-pair, .calculator-results { grid-template-columns: 1fr; }
+  .case-detail p { grid-template-columns: 1fr; gap: 5px; }
+  .calculator-lab, .case-study { border-radius: 12px; }
+  h1 { overflow-wrap: break-word; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
 }
