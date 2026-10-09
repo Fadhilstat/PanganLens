@@ -1,25 +1,29 @@
 # HANDOFF
 
-## Product and working contracts
+## Purpose and product boundaries
 
-PanganLens Indonesia is a public food-price intelligence project. PIHPS Bank Indonesia is the preferred source while guarded source health and schema checks hold. The repository models ingestion, canonical mappings, quality gates, BigQuery curated marts, and a static public website snapshot. Do not show invented production values when the validated snapshot is absent.
+PanganLens Indonesia monitors public food-price changes, prioritizing PIHPS Bank Indonesia while its guarded source interface remains valid. The repository contains source validation, reviewed commodity and region mapping, BigQuery quality and publication contracts, and a static public dashboard. The website must not fabricate production prices when a validated snapshot is unavailable.
 
-Phase 2 is open. The existing GitHub issue `Fadhilstat/PanganLens#48` defines the separate cloud activation checklist and is not solved by this CI milestone. The current checked-in website snapshot is empty: `national_prices=[]`, `province_prices=[]`, and `publish_state=null`.
+Phase 2 (Technical Implementation) remains open. [Cloud activation issue #48](https://github.com/Fadhilstat/PanganLens/issues/48) is an independent blocker. The GitLab CI milestone does not enable cloud activation, scheduled ingestion, or publication.
 
-## GitLab CI quality parity milestone
+## Released to GitHub
 
-Add a GitLab-only repository quality workflow using hosted CI. Keep the GitHub WIF and snapshot publication boundaries unchanged. GitHub remains the only verified PanganLens repository as of this checkpoint; an actual GitLab target has not been located in the connected account. Do not import or overwrite another repository in order to fill this gap.
+- [Repository](https://github.com/Fadhilstat/PanganLens)
+- [PR #64](https://github.com/Fadhilstat/PanganLens/pull/64) merged 2026-10-09T18:00:37Z.
+- Released main SHA: 9005b2a5fc5baa7b9e45a6cda552095b6b8b8349.
+- [Actions run #37970221878](https://github.com/Fadhilstat/PanganLens/actions/runs/37970221878): SUCCESS for Python tests, Ruff, compile, and PIHPS source probe.
+- GitLab CI job configuration, three contract tests, and documentation are present in the released GitHub tree.
 
-The proposed `.gitlab-ci.yml` runs pytest, Ruff, and Python compilation using the existing `constraints/ci.txt` dependency pins. It runs on merge requests and default-branch updates only, has no GCP credentials, and cannot publish or ingest data. See `docs/gitlab_ci_parity.md` for acceptance and rollback rules.
+## Pending GitLab destination
 
-## How to resume
+The authenticated GitLab account fadhilrusydih has no verified PanganLens project in its accessible project list. The usual personal and group paths were also not found. As a result, GitLab import, CI pipeline, and merge cannot yet be validated. Do not create a false success claim or overwrite a different project.
 
-1. Verify the current GitHub branch, PR, CI, and default-branch HEAD against live repository history. The baseline SHA in `RUN_STATE.md` is a checkpoint, not a merge target.
-2. The user granted `APPROVE PUSH` and `APPROVE MERGE` on 2026-10-10 for this milestone. The merger must still verify green CI and a reviewed diff.
-3. Locate the intended GitLab project, or obtain a separate decision about creating one, without overwriting a different repository or guessing history.
-4. When a GitLab target exists, verify its base and run GitLab CI lint and a real MR pipeline before claiming GitLab parity.
-5. Do not perform VPS, GCP activation, or production deployment in this continuation.
+The connected GitLab actions can work with existing projects but do not expose project creation or importing. An authorized owner can use GitLab's **Import project > Repository by URL** interface, using the public source https://github.com/Fadhilstat/PanganLens.git. Choose the intended personal or group namespace. See [GitLab CI parity](docs/gitlab_ci_parity.md) for exact checks.
 
-Unverified: GitLab repository identity, shared remote ancestry, new candidate GitLab pipeline result, production data readiness.
+A complete import already includes the GitHub-released GitLab CI files. Confirm the imported default-branch SHA or full tree parity and inspect the actual GitLab pipeline result. Do not manufacture a merge request unless a real change is needed. If history diverges, stop and reconcile without force pushing.
 
-NEXT_ACTION: Verify the GitHub PR merge and CI, then locate the approved GitLab PanganLens destination for separate MR validation.
+## Safety and handoff
+
+No VPS, self-hosted runner, GCP role, service key, secret, live ingestion schedule, or deployment was introduced. Continue with least-privilege and data-quality requirements already documented.
+
+NEXT_ACTION: Establish the PanganLens GitLab project through the official GitLab import process, then verify its commit history and CI before declaring GitHub/GitLab synchronization complete.

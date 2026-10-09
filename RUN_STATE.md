@@ -3,44 +3,41 @@
 Updated: 2026-10-10 (Asia/Jakarta)
 Project: PanganLens Indonesia
 Phase: 2, Technical Implementation
-Current milestone: GitLab CI quality parity, approved GitHub release candidate
-Status: RELEASE_IN_PROGRESS_VERIFY_REMOTE
+Milestone: GitLab CI quality parity and release handoff
+Status: GITHUB_MERGED_GITLAB_DESTINATION_MISSING
 
 ## Verified repository state
 
-- GitHub repository: `Fadhilstat/PanganLens`.
-- GitHub default branch: `main`.
-- GitHub baseline SHA: `c97ea82a3fb7308e93a49fdcfd8bb717911d3dce`.
-- GitHub baseline date: 2026-08-19.
-- GitHub quality workflow last observed success on `main`: 2026-08-22, run `32569531191`.
-- GitHub CI canary: 2026-09-26, successful on a separate temporary SHA; not evidence of a new `main` commit.
-- GitLab connection: account `fadhilrusydih`; no PanganLens project in the authenticated membership list as checked 2026-10-10.
-- Existing `RUN_STATE.md` / `HANDOFF.md` on GitHub `main`: not found. This candidate introduces them; it does not claim they existed earlier.
-- The candidate patch was reconstructed from verified GitHub repository files. Verify the latest GitHub branch and PR to establish publication state; do not infer a merge from this document.
+- Canonical repository: [Fadhilstat/PanganLens](https://github.com/Fadhilstat/PanganLens), public, default branch main.
+- [GitHub PR #64](https://github.com/Fadhilstat/PanganLens/pull/64) merged on 2026-10-09T18:00:37Z.
+- Released GitHub main SHA: 9005b2a5fc5baa7b9e45a6cda552095b6b8b8349.
+- Approved feature commit: f0636811843b6b07b6cf65cfe1b3e8e1aebde6d6.
+- Source base: c97ea82a3fb7308e93a49fdcfd8bb717911d3dce.
+- [GitHub Actions run #37970221878](https://github.com/Fadhilstat/PanganLens/actions/runs/37970221878) finished SUCCESS.
+- The PR jobs named tests and live-pihps-probe completed successfully.
+- GitLab CI files and continuity documents are present on GitHub main.
+- Connected GitLab account: fadhilrusydih.
+- On 2026-10-10 the GitLab account had 11 visible membership projects but no PanganLens repository.
+- Exact personal and established group PanganLens path lookups also returned not found. Do not reuse an unrelated GitLab project.
 
-## Candidate work
+## Quality evidence and limits
 
-- Add `.gitlab-ci.yml` for GitLab-hosted Python test, lint, and compile checks.
-- Add `tests/test_gitlab_ci_contract.py` to guard command parity, pipeline scope, and no-cloud boundary.
-- Add `docs/gitlab_ci_parity.md` for constraints and a release checklist.
-- Add `RUN_STATE.md` and `HANDOFF.md` as lightweight continuity checkpoints.
+- GitHub PR quality checks: PASS (pytest, Ruff, Python compile).
+- GitHub live PIHPS interface probe: PASS for that run only.
+- Local GitLab CI contract tests: PASS (3/3).
+- GitLab CI lint: NOT_RUN, no verified target project.
+- GitLab CI pipeline or MR: NOT_RUN, no verified target project.
+- GitLab commit/tree parity: NOT_VERIFIED.
+- GCP activation, end-to-end production ingestion, and dashboard publication: NOT_VERIFIED by this milestone.
+- The last inspected public dashboard JSON had no published national, province, or publish-state records.
+- [GitHub Issue #48](https://github.com/Fadhilstat/PanganLens/issues/48) remains the separate cloud activation gate.
 
-## Validation evidence
+## Release boundaries
 
-- Local GitLab YAML parsing using PyYAML: PASS.
-- New GitLab CI contract tests in local reconstructed workspace: PASS (3 tests).
-- Python bytecode compilation for the new test file: PASS.
-- Full repository pytest, Ruff, and full repository compilation: NOT_RUN, full GitHub checkout and dependencies unavailable locally.
-- GitLab CI Lint and live GitLab pipeline: NOT_RUN, target GitLab repository not found.
-- GitHub Actions on the candidate: NOT_RUN at this checkpoint. Pull request CI must pass before merge.
-- Live PIHPS, BigQuery, public dashboard: NOT_RUN for this milestone.
+- No VPS, self-hosted runners, GCP configuration changes, or deployment.
+- No GitLab project has been created or imported by the connected tools.
+- The user approved push and merge for this continuation; still require a valid destination, verified diff, and green CI before any future GitLab merge.
+- Do not force push, overwrite divergent repositories, or invent a successful GitLab pipeline.
+- Official GitLab Repository by URL import steps are recorded in [docs/gitlab_ci_parity.md](docs/gitlab_ci_parity.md).
 
-## Security and scope
-
-- No VPS, Remote Desktop Commander, Vercel, or GCP used.
-- No production ingestion or scheduled publication enabled.
-- No repository secrets accessed or written.
-- No remote push or merge was recorded at the original local checkpoint; verify current remote state separately.
-
-Approval state: APPROVE_PUSH and APPROVE_MERGE granted on 2026-10-10 for this milestone. Merge remains gated on green CI and reviewed diff.
-NEXT_ACTION: Verify GitHub PR/merge and its CI, then locate an approved GitLab destination and validate GitLab MR CI. Do not create an unrequested GitLab repository.
+NEXT_ACTION: Import the public GitHub repository https://github.com/Fadhilstat/PanganLens.git into an approved GitLab namespace, or provide an existing verified matching project. Once it exists, check import status, history/tree parity, CI lint, and GitLab pipeline before calling the repositories synchronized.

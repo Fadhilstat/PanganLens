@@ -1,51 +1,54 @@
 # GitLab CI quality mirror for PanganLens
 
-## Purpose
+## Status (10 October 2026)
 
-GitLab can run the same repository-level Python quality checks as GitHub Actions without a VPS or a self-hosted runner. This is a CI portability milestone, not a change in data ownership, cloud identity, deployment, or production readiness.
+The GitHub milestone was released through [PR #64](https://github.com/Fadhilstat/PanganLens/pull/64). The verified GitHub main commit is 9005b2a5fc5baa7b9e45a6cda552095b6b8b8349. [GitHub Actions run #37970221878](https://github.com/Fadhilstat/PanganLens/actions/runs/37970221878) succeeded. The connected GitLab account has no authorized PanganLens project, so GitLab pipeline and commit parity are NOT_VERIFIED.
 
-The reviewed GitHub source baseline is `Fadhilstat/PanganLens` at `main` commit `c97ea82a3fb7308e93a49fdcfd8bb717911d3dce`, verified on 10 October 2026. At that checkpoint, no PanganLens project appeared among the authenticated GitLab user's project memberships. Do not assume a GitLab repository or a common Git history exists until each is explicitly verified.
+GitLab can run Python repository quality checks using hosted CI without a VPS. This is CI portability, not production BigQuery activation or data publication.
 
-## Contract and acceptance checks
+## Quality contract
 
-| ID | Requirement | Evidence in this candidate | Acceptance |
-| --- | --- | --- | --- |
-| REQ-CI-001 | Run Python quality without a VPS | `.gitlab-ci.yml` on GitLab-hosted runners | GitLab MR pipeline passes after an approved push |
-| REQ-CI-002 | Reuse the existing test commands | `tests/test_gitlab_ci_contract.py` | CI contract tests pass |
-| REQ-CI-003 | Fail closed on cloud privilege | GitLab job has no WIF, GCP variable, deployment, or ingest step | Reviewed diff and CI configuration stay credential-free |
-| REQ-CI-004 | Avoid unreviewed writes | Remote work remains approval-gated | Only the approved branch is pushed; merge needs a separate approval |
+| Requirement | GitHub evidence | Required GitLab proof |
+| --- | --- | --- |
+| REQ-CI-001: Hosted Python CI | CI file merged in PR #64 | A successful GitLab pipeline |
+| REQ-CI-002: Same dependency constraints and checks | Python quality job succeeded | Matching pytest, Ruff, and compile jobs |
+| REQ-CI-003: No cloud or deployment authority | GitLab CI file excludes cloud credentials and deploy steps | Review effective CI configuration |
+| REQ-CI-004: No destructive sync | GitHub main verified | Approved target, matching history/tree, no force push |
 
-The GitLab job executes these commands from the repository root:
+The GitLab CI job uses Python 3.11 and the reviewed dependency constraints. Its commands are:
 
-```sh
-python -m pip install -c constraints/ci.txt -e ".[dev]"
-pytest -q
-ruff check src scripts tests
-python -m compileall -q src scripts tests
-```
+    python -m pip install -c constraints/ci.txt -e ".[dev]"
+    pytest -q
+    ruff check src scripts tests
+    python -m compileall -q src scripts tests
 
-These are the same four checks used by the verified GitHub `quality.yml` unit-test job. GitLab pipelines are limited to merge requests and the default branch. The GitLab job uses a Python 3.11 Docker image and the existing reviewed dependency constraints. The image tag tracks upstream security updates and is not immutable; pin a verified digest in a separate reviewed change if immutable image provenance becomes necessary.
+The workflow runs for merge requests and default-branch commits. The Python image uses a moving tag, not an immutable digest, and must be pinned in a separately reviewed change if the supply-chain policy requires that.
 
-## Intentional exclusions
+## Import the source into GitLab
 
-- No new cloud resource, GCP authentication, BigQuery role, or secret.
-- No CI-driven data ingestion, snapshot refresh, or publication.
-- No GitLab Pages, GitHub Pages, Vercel, or VPS deployment in this milestone.
-- No remote mirroring, import, force push, or overwrite of divergent histories.
-- No new scheduled jobs or live PIHPS probes on GitLab. The pre-existing GitHub live probe remains a separate source-health check, not evidence that GitLab CI is green.
+GitLab's [official Repository by URL guide](https://docs.gitlab.com/user/import/third_party_systems/repo_by_url/) documents the following:
 
-GitHub Issue #48 is still the cloud activation checkpoint. The repository's website snapshot remains empty until independent data publication gates pass. GitLab CI must not silently weaken those rules.
+1. In GitLab select **Create new > New project/repository > Import project > Repository by URL**.
+2. Use the public source URL https://github.com/Fadhilstat/PanganLens.git.
+3. Choose an approved personal or group namespace and project name PanganLens if available. Never overwrite an unrelated project or select a namespace without permission.
+4. Finish the import and inspect its status. Repository by URL imports Git history and files, but not GitHub issues or pull requests.
+5. Compare GitLab's default branch to the verified GitHub main commit 9005b2a5fc5baa7b9e45a6cda552095b6b8b8349. If commits differ, inspect complete tree contents before reconciliation.
+6. Verify the GitLab CI configuration and run or inspect an actual hosted pipeline. GitHub Actions success is not GitLab CI success.
+7. A full import already includes the merged CI files. Open a GitLab MR only for a real subsequent change. Require a reviewed diff and successful CI before merging.
 
-## Safe release sequence
+The connected GitLab actions available in this session do not include creating or importing a GitLab project. The first import must be completed through GitLab by an authorized user or an explicitly enabled project-create action.
 
-1. Identify the intended GitLab PanganLens project and confirm its owner, branch, and history. If it does not exist, plan explicit creation only after owner approval.
-2. Compare the exact GitHub and GitLab base commit trees. Resolve mismatches before copying any file; never assume their `main` branches are aligned.
-3. Apply the reviewed patch to a single feature branch without overwriting uncommitted work.
-4. Run local checks on a full checkout with dependencies installed, then push only after `APPROVE PUSH`.
-5. Validate the GitLab CI syntax through GitLab CI Lint and verify the actual hosted MR pipeline. Treat local YAML parsing as a syntax smoke check, not a full GitLab validation.
-6. Review diff and pipeline results. Merge only after a separate `APPROVE MERGE`.
-7. Confirm the exact resulting commit on each intended remote. Do not call a mirror synchronized until SHA or an equivalent reviewed commit/tree comparison proves it.
+## Boundaries
 
-## Rollback
+- No VPS, self-hosted runner, GCP authentication, or extra privileges.
+- No automatic ingestion or publication, no scheduled refresh, and no secrets.
+- No remote mirroring or force push to unrelated or diverged history.
+- The PIHPS source-health probe does not prove production BigQuery readiness.
+- GitHub Issue #48 remains the separate cloud activation checkpoint.
+- Treat zero-cost operation as a goal with usage controls, not a guarantee.
 
-The milestone adds isolated CI and documentation files. Remove the CI file on an approved branch to disable its jobs if GitLab validation identifies issues. Keep the last verified default-branch SHA. No warehouse or production data rollback is necessary because the change does not touch them.
+## Rollback and next action
+
+For a future GitLab-specific change, use a review branch, check its diff and CI, and merge only under the explicit approval gates. Reverting this isolated CI configuration does not require any warehouse or live-data rollback.
+
+NEXT_ACTION: Create or import the authorized GitLab destination, then verify exact Git history or complete tree parity plus a real GitLab pipeline outcome.
