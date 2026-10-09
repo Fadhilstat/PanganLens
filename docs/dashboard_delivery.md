@@ -57,3 +57,10 @@ GitLab project access control was reported as private at the time of this portfo
 GitHub Pages is a second optional static publishing route. The existing dashboard_pages.yml workflow requires the repository's Pages source to be set to GitHub Actions; a push of the website does not prove that deployment succeeded. Check the actual workflow conclusion and published URL before adding a public link to a portfolio.
 
 **Publication mode:** Portfolio preview only. No mock market data, no live-price claim. Warehouse activation and curated price publication remain separately approved operations.
+
+
+## Verified release checkpoint (10 October 2026)
+
+GitHub PR #67 passed quality CI #37974789018. GitLab MR !2 and main pipelines #2931785591 and #2931787912 passed, including static Pages deployment. Full file-content parity across the two repositories: 153/153 matching Git blob SHA values.
+
+Anonymous Pages access is NOT_VERIFIED: the GitLab project reports pages_access_level private. Separately, GitHub Pages workflow #37974862397 failed at Configure Pages because repository Pages was not enabled (HTTP 404). Neither is evidence of failure of the dashboard source code. Make Pages public and validate an actual URL without authentication before advertising it as a live portfolio link.
