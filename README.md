@@ -4,7 +4,7 @@
 
 PanganLens explores a practical question: *how can a food-price dashboard make trends understandable without quietly publishing unverified numbers?* It combines guarded source ingestion, a normalized BigQuery model, mapping review, quality gates, and a lightweight public-facing website.
 
-**Portfolio status (10 October 2026):** a portfolio preview is under development. The repository includes working ingestion and quality-control code, but **does not yet publish verified live food prices**. The checked-in dashboard snapshot is deliberately empty. The website includes a separate interactive exercise that calculates percentage changes using visitor-provided inputs only.
+**Portfolio status (10 October 2026):** the GitHub and GitLab code releases passed CI, and GitLab's static Pages deployment job succeeded. However, **anonymous Pages access is not yet verified**, because the project's Pages visibility is private. GitHub Pages still needs repository settings enabled. Verified live food prices are not published; the checked-in snapshot is deliberately empty. The calculator uses visitor-provided input only.
 
 [Explore the website source](website/) | [Read the case study](docs/portfolio_case_study.md) | [Inspect quality gates](docs/data_safety_contract.md) | [See cloud activation criteria](https://github.com/Fadhilstat/PanganLens/issues/48)
 
@@ -118,7 +118,7 @@ The website remains safe to publish as a **portfolio preview**: no unsupported m
 
 ## Roadmap
 
-**NOW:** Publish the preview website, verify both CI pipelines, and make sure anonymous visitors can access it.
+**NOW:** Make the deployed GitLab Pages site publicly accessible, verify its URL without signing in, and optionally enable GitHub Pages.
 
 **NEXT:** Obtain reviewed mappings, activate BigQuery with short-lived identity, and publish the first validated price snapshot.
 
@@ -129,3 +129,14 @@ The website remains safe to publish as a **portfolio preview**: no unsupported m
 ## Author
 
 Personal data engineering and analytics portfolio project. [LinkedIn](https://www.linkedin.com/in/fadhilrusydi31/) | [GitHub](https://github.com/Fadhilstat) | [GitLab](https://gitlab.com/fadhilrusydih).
+
+
+## Verified release evidence
+
+- [GitHub PR #67](https://github.com/Fadhilstat/PanganLens/pull/67) merged with [full CI success](https://github.com/Fadhilstat/PanganLens/actions/runs/37974789018).
+- [GitLab MR !2](https://gitlab.com/fadhilrusydih/panganlens/-/merge_requests/2) merged with [successful MR CI](https://gitlab.com/fadhilrusydih/panganlens/-/pipelines/2931785591).
+- [GitLab main CI and Pages deployment](https://gitlab.com/fadhilrusydih/panganlens/-/pipelines/2931787912): SUCCESS. Immediately after merging, all 153 file blob SHA values matched across the two repositories.
+- [GitHub Pages deployment](https://github.com/Fadhilstat/PanganLens/actions/runs/37974862397): FAIL at Configure Pages with HTTP 404 because repository Pages had not been enabled. This is a hosting settings issue.
+- GitLab Pages access control reported private. Do not treat successful artifact deployment as verified public reachability.
+
+Owner steps: set GitLab **Settings > General > Visibility, project features, permissions > Pages** to **Everyone with access** and find the actual URL under **Deploy > Pages**. Optional GitHub site: set **Settings > Pages > Build and deployment > Source: GitHub Actions**, then rerun the existing website workflow. No VPS is needed.

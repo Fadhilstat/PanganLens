@@ -2,47 +2,45 @@
 
 Updated: 2026-10-10 (Asia/Jakarta)
 Project: PanganLens Indonesia
-Phase: 2 Technical Implementation, Phase 3 Repository/README, Phase 4 Portfolio Preview
-Current milestone: Trustworthy portfolio preview with user-input calculator and static Pages
-Status: RELEASE_CANDIDATE, requires live CI and Pages access verification
+Phases: Technical Implementation / Repository / Portfolio Preview
+Status: PREVIEW_PAGES_DEPLOYED, PUBLIC_ACCESS_NOT_VERIFIED
 
-## Verified baseline before this milestone
+## Verified release
 
-- GitHub: https://github.com/Fadhilstat/PanganLens
-- GitHub source main: 6a731b14c4c4944b35ee35834cff399d5e543544.
-- GitLab: https://gitlab.com/fadhilrusydih/panganlens
-- GitLab main before this milestone: a4cfb5fcf7cd89132af36e2e4777f31048e5baad.
-- GitLab MR !1 merged; source file blob SHA parity was verified for all 149 files.
-- GitLab main pipeline #2931733482: SUCCESS (previous, pre-milestone code).
-- GitHub and GitLab commit SHA differs due to content-snapshot import rather than shared history.
-- Public snapshot website/data/dashboard.json: empty, publish_state null.
-- GCP activation from GitHub issue #48: not completed and remains independent.
+- GitHub canonical source: https://github.com/Fadhilstat/PanganLens
+- GitHub PR #67 merged at 1924451616d42949549cc86512455e1b56821d0a.
+- GitHub full quality workflow #37974789018: SUCCESS, including Python, Node, and live PIHPS source probe.
+- GitLab target: https://gitlab.com/fadhilrusydih/panganlens
+- GitLab MR !2 merged at cd100cb30929d48703b15e5870a6b950ef78d79b.
+- GitLab MR pipeline #2931785591: SUCCESS.
+- GitLab main pipeline #2931787912: SUCCESS, including Python, Node, and static Pages deployment.
+- File content matched 153/153 paths and Git blob SHA values after the merges; commit ancestry differs.
+- Historical release SHAs are not permanent HEADs; fetch live refs before a new push.
 
-## Release candidate changes
+## Public access and production boundaries
 
-- Website: input-only positive-rupiah calculator, explicit provenance, an architecture case-study section, mobile nav, skip link, focus states and reduced motion.
-- Numeric fixes: zero and missing values are not silently displayed as valid production observations.
-- README: recruiter-facing product narrative, real architecture, reproducible test commands and limitations.
-- Documentation: portfolio case study and Pages release procedures.
-- GitHub Actions: separate built-in Node calculation test gate.
-- GitLab CI: verify stages for Python and Node, default-branch-only static Pages publish after both pass.
-- No new runtime dependencies, cloud credentials, GCP setup, production ingestion or VPS.
+- GitLab project Pages access level: private. Public anonymous browsing: NOT_VERIFIED.
+- GitHub Pages workflow #37974862397: FAIL during Configure Pages (HTTP 404, site not enabled in repository settings).
+- Real public Pages URL: NOT_VERIFIED. Do not invent or advertise it.
+- Production website/data/dashboard.json remains empty with null publish_state.
+- GCP warehouse activation and real market prices: NOT_READY, separately tracked at GitHub Issue #48.
+- GitLab Pages deployment is a portfolio preview, not proof of production market data.
 
-## QA evidence
+## QA
 
-- Local Node calculation tests: PASS (7 tests).
-- Local JavaScript syntax check for the new calculator: PASS.
-- GitHub full CI for this candidate: NOT_RUN until PR branch is pushed.
-- GitLab CI and Pages pipeline for this candidate: NOT_RUN until MR and main pushes.
-- Browser screenshots, GitHub Pages deploy, public GitLab Pages access: NOT_VERIFIED.
-- Final GitHub/GitLab file-hash parity: NOT_VERIFIED until both changes merge.
-- Full warehouse production data path: NOT_RUN and NOT_CLAIMED.
+- Core Python CI, lint, compile: PASS on both review workflows.
+- Calculator Node unit tests (7), syntax checks: PASS.
+- Full visual, keyboard and responsive browser QA on hosted URL: NOT_RUN.
+- No VPS, GCP credential, source data fixture, ingestion schedule, or extra cloud privilege introduced.
 
-## Safety gates
+## Final owner action
 
-- Approved: APPROVE PUSH and APPROVE MERGE for this milestone, confirmed in this chat.
-- Still require reviewed diff, passing Python and Node CI, and verified MR head before each merge.
-- GitLab Pages access level was private when inspected; CI deployment alone does not make the site publicly viewable.
-- Keep BigQuery snapshot empty until source, mapping, warehouse and publish-state gates are verified.
+NOW: Set Pages access to Everyone with access under GitLab Settings > General > Visibility, project features, permissions, then verify the actual Pages URL from Deploy > Pages in a logged-out browser.
 
-NEXT_ACTION: Push a single review branch to GitHub, run quality CI, merge only on green checks, then sync the exact changed files to a GitLab MR, verify its pipeline and static Pages deployment, and inspect published URLs.
+NEXT: Optionally configure GitHub Settings > Pages > Source: GitHub Actions and rerun the website dashboard workflow.
+
+LATER: Finish Issue #48 activation and publish a first curated price snapshot.
+
+OPTIONAL: Add browser E2E and accessibility testing after a reachable site URL exists.
+
+NEXT_ACTION: Verify anonymous GitLab Pages access and its real URL, then add only that verified URL to README and portfolio profiles.

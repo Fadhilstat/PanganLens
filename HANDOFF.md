@@ -1,35 +1,27 @@
 # HANDOFF
 
-## Goal
+## Product intent
 
-Ship PanganLens as a strong, honest, inspectable data engineering portfolio. A publicly hosted preview is distinct from a live food-price data product.
+PanganLens Indonesia is a food-price data engineering and analytics portfolio. Public prices must be validated and curated before appearing as real market data. The website includes an independent calculator for user-provided amounts only. Production BigQuery activation remains gated by GitHub Issue #48.
 
-## Source-of-truth recovery
+## Verified 10 October 2026
 
-- GitHub canonical source: https://github.com/Fadhilstat/PanganLens.
-- GitLab target: https://gitlab.com/fadhilrusydih/panganlens.
-- Verified initial shared contents at GitHub SHA 6a731b14c4c4944b35ee35834cff399d5e543544 and GitLab SHA a4cfb5fcf7cd89132af36e2e4777f31048e5baad. Histories differ but all 149 file blob SHA values matched.
-- Retrieve fresh branch refs before writing: earlier SHAs are checkpoints, not permanent HEADs.
-- Cloud readiness is separate and tracked in GitHub issue #48. Never publish guessed live prices.
+- GitHub PR #67 merged at 1924451616d42949549cc86512455e1b56821d0a; GitHub Actions quality #37974789018 SUCCESS.
+- GitLab MR !2 merged at cd100cb30929d48703b15e5870a6b950ef78d79b; MR CI #2931785591 SUCCESS.
+- GitLab main CI #2931787912 SUCCESS: Python, Node and static Pages deployment.
+- After the release, GitHub/GitLab 153/153 file paths and blob hashes matched. Histories differ by design due to initial snapshot copy.
+- Site still has an empty real-price snapshot. The input-only calculation exercise has 7 passing Node math tests.
+- Historical SHAs are checkpoint markers, not guaranteed current branch heads.
 
-## Portfolio preview scope
+## Hosting blockers
 
-- Plain HTML/CSS/JS site serves a guarded production snapshot. As long as the snapshot is empty, the dashboard shows honest unavailable states.
-- Independent calculator accepts four visitor-entered amounts for movement and regional differences. It never reads external price data or sends input to a server.
-- Site includes an architecture summary and source link. README and docs/portfolio_case_study.md explain data pipeline, evidence, decisions, risk and remaining gaps.
-- Tests run in GitHub Actions and GitLab CI without VPS. GitLab Pages should deploy website/ only after Python and Node verify stages succeed on the default branch.
-- GitLab project Pages access control was private at last inspection. Public access requires checking the GitLab project's Pages setting and the deployed URL.
+- GitLab Pages project access was private, despite successful deployment. To make publicly viewable, owner must select **Everyone with access** under Settings > General > Visibility, project features, permissions > Pages, then retrieve and test the real URL under Deploy > Pages.
+- GitHub Pages workflow #37974862397 failed at Configure Pages HTTP 404 because the Pages site is not enabled. Owner can select Source: GitHub Actions under repository Settings > Pages and rerun existing workflow.
+- Do not claim a public site URL before opening it without authentication.
+- Do not claim production prices, BigQuery operational readiness, or long-term uptime.
 
-## Release method
+## Safety and next step
 
-1. Confirm working branch and source HEAD on GitHub. No force push.
-2. Inspect changed files and execute Node math tests, Python tests, lint and CI.
-3. With owner APPROVE PUSH and APPROVE MERGE, push feature branch and merge only after checks pass.
-4. Fetch exact changed files from merged GitHub main, apply to a new GitLab feature branch, run MR pipeline, and merge only on success. Do not rewrite GitLab's different commit ancestry.
-5. Compare GitHub and GitLab file path and blob SHA parity after merge.
-6. Check the actual GitLab Pages deployment and anonymous access. Do not invent Pages domain or claim public reachability without verification.
-7. Retain GCP and production data quality gates independently.
+No VPS, GCP credential, unapproved cloud write privilege, or synthetic PIHPS dataset was added. Future commits still need an accurate branch/ref check, reviewed diff and successful CI. GitLab Pages deploy is guarded to default branch after Python and Node QA.
 
-Rollback: revert the portfolio UI and CI Pages changes through reviewed pull/merge requests. No warehouse state or live snapshot is touched.
-
-NEXT_ACTION: Complete CI-gated GitHub and GitLab PR/MR releases for the portfolio preview and check the real static-site deployment/access state.
+NEXT_ACTION: Owner adjusts GitLab Pages visibility, provides the real deployed URL, and verifies it is publicly accessible; then link the verified URL in README and the personal portfolio.
