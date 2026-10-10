@@ -31,7 +31,7 @@
 ## QA and safety boundaries
 
 - Preserve source snapshot checker, quality gates, data source provenance, accessibility states and no credentials in browser.
-- Actual responsive visual (360px, 768px, desktop), browser keyboard navigation and form submission verification are NOT_RUN until executed.
+- A GitHub browser-quality job now runs real Chrome at 360px, 768px and 1440px with keyboard focus, overflow, form submit/reset and JavaScript error assertions. Mark PASS only after an actual completed CI run; manual designer visual review remains separate.
 - The blocked GitLab Pages domain must not be promoted as public.
 - No VPS, cloud keys or paid infrastructure requested.
 

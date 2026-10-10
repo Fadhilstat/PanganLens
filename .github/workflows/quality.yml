@@ -51,6 +51,27 @@ jobs:
       - name: Test comparison math
         run: node --test tests/dashboard_metrics.test.cjs tests/price_playground.test.cjs
 
+  browser-quality:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Install pinned browser test driver
+        run: npm install --no-save --no-package-lock --ignore-scripts playwright-core@1.61.1
+      - name: Check desktop mobile and calculator in Chrome
+        run: node --test tests/browser_portfolio.test.cjs
+      - name: Retain responsive QA screenshots
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: panganlens-browser-qa
+          path: qa-screenshots/
+          if-no-files-found: ignore
+          retention-days: 7
+
   live-pihps-probe:
     runs-on: ubuntu-latest
     timeout-minutes: 5

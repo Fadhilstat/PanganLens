@@ -39,3 +39,17 @@ python scripts/check_public_site.py --url https://panganlens-portfolio.vercel.ap
 The verifier requires the production HTTPS host, editorial launch markup, canonical and Open Graph URL, stylesheet, JavaScript assets and a structurally valid public snapshot. It does not use tokens. GitLab `public_site_smoke` runs on merge requests and `main` as a nonblocking public availability signal. Do not report launch-ready while it is failing. The snapshot JSON is served with `Cache-Control: no-store` from Vercel static headers.
 
 Visual verification at 360px, 768px and desktop, including calculator submit/reset, keyboard focus and horizontal overflow, is a separate check. Mark it `NOT_RUN` until a real browser or a Playwright runner completes it.
+
+
+## Browser verification in CI
+
+The GitHub `browser-quality` job installs a pinned transient `playwright-core`
+test driver and launches the hosted runner's Chrome. It serves `website/` locally,
+tests desktop/tablet/mobile viewports at 1440/768/360 px, verifies the preview
+state, safe hidden price-only controls, calculator arithmetic, reset, no
+horizontal overflow, visible keyboard skip link, and no uncaught JavaScript
+exceptions. It retains optional screenshot artifacts for visual review.
+
+This job tests the merged source layout, not the external host. Combine it with
+GitLab's anonymous production HTTPS smoke and Vercel's exact deployment SHA
+before promoting the site on LinkedIn.

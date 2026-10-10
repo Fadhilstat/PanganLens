@@ -33,6 +33,7 @@ Status: CODE_MERGED, VERCEL_BUILD_READY, ANONYMOUS_HTTP_UNVERIFIED
 - Reject wrong or unreviewed layout, missing assets, invalid snapshot and authentication redirects.
 - Run the public HTTP smoke from GitLab merge request and main CI (nonblocking until auto-deploy).
 - Add regression tests and no-store caching for dashboard.json.
+- Add headless Chrome QA at 360px, 768px and 1440px with calculator, overflow, focus and error assertions; require passing GitHub CI.
 - Redeploy exact merged source to Vercel and inspect both CI and public accessibility before claiming launch-ready.
 
 ## Problems, solutions, opportunities

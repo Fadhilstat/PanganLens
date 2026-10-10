@@ -77,6 +77,18 @@ The source client refuses unreviewed transport/schema changes. Production bootst
 
 This is intentionally a small static frontend, not an always-on server. A live data pipeline requires separate cloud setup and quality approvals described in the existing docs.
 
+## Responsive browser acceptance test
+
+GitHub Actions runs a real headless Chrome browser check at 360px, 768px and 1440px.
+It checks empty-state visibility, horizontal overflow, keyboard focus, calculator
+arithmetic, reset behavior and uncaught JavaScript errors. Screenshots are kept as
+short-lived CI artifacts. Locally, with Chrome available, run:
+
+~~~bash
+npm install --no-save --no-package-lock --ignore-scripts playwright-core@1.61.1
+node --test tests/browser_portfolio.test.cjs
+~~~
+
 ## Reproduce checks
 
 Requires Python 3.11+; for the browser calculation tests, Node 22+.
