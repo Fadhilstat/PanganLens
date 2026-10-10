@@ -4,7 +4,7 @@ Updated: 2026-10-10 (Asia/Jakarta)
 Project: PanganLens Indonesia
 Phases: 2 Technical Implementation, 3 Repository, 4 Go-to-market
 Milestone: Verified public Vercel launch, source parity and frontend QA
-Status: RELEASE_CANDIDATE_QA_PASSED, VERCEL_PUBLIC_PREVIEW_VERIFIED, MAIN_REDEPLOY_PENDING
+Status: PUBLIC_PORTFOLIO_PREVIEW_READY, VERCEL_DEPLOYED_AND_ANONYMOUS_SMOKE_PASSED
 
 ## Verified source and quality evidence
 
@@ -44,12 +44,12 @@ Status: RELEASE_CANDIDATE_QA_PASSED, VERCEL_PUBLIC_PREVIEW_VERIFIED, MAIN_REDEPL
 - LOW: GitLab Pages still requires login and remains a documented fallback failure.
 - Opportunity: a clear, reproducible public portfolio launch check demonstrates engineering trust and release discipline.
 
-NOW: Merge verified release PR/MR, manually deploy the exact merged main website/ bundle and rerun anonymous Vercel smoke.
-NEXT: Review retained Chrome screenshots for editorial aesthetics before a high-visibility LinkedIn announcement.
+NOW: Public portfolio preview is available at https://panganlens-portfolio.vercel.app/ and has passed post-merge smoke.
+NEXT: Owner enables GitHub-Vercel repository integration and optionally reviews retained Chrome screenshots before the LinkedIn announcement.
 LATER: Reviewed PIHPS production data under GitHub Issue #48.
 OPTIONAL: Case study visuals and LinkedIn publishing pack.
 
-NEXT_ACTION: Merge PR #75 and MR !10 (after green checks), deploy the final merged source to Vercel and rerun public smoke. Mark ready for portfolio sharing only on post-deployment PASS.
+NEXT_ACTION: Owner authorizes the Vercel GitHub integration for Fadhilstat/PanganLens so future main pushes deploy automatically; keep the public snapshot empty until PIHPS publication is approved.
 
 ## Release candidate QA evidence (2026-10-10)
 
@@ -58,3 +58,15 @@ NEXT_ACTION: Merge PR #75 and MR !10 (after green checks), deploy the final merg
 - Screenshot artifact 11669544645 exists for manual visual review.
 - GitLab MR !10 pipeline #2933461706: Python and Node checks passed. Vercel smoke job #17080370537: PASS with 13291 HTML bytes, 5 static assets and schema-1 empty preview snapshot.
 - This verifies the existing production Vercel deployment, not the upcoming source changes to JSON caching and CI; redeploy exact main and verify again before declaring current revision live.
+
+## Final production release verified
+
+- GitHub PR #75 MERGED to main commit 0234893d6db6ac09aa5d673eb983b0053bd7c58c.
+- GitLab MR !10 MERGED to main commit b39d1f835202cfb1a2b72020fee4278770d2d11e.
+- Post-merge GitHub/GitLab blob parity: 162/162 matched.
+- Vercel production deployment dpl_AMPHmiCdttsw8xGaYSGKzttiBRdV: READY; GitHub main SHA 0234893d6db6ac09aa5d673eb983b0053bd7c58c.
+- Latest anonymous HTTPS production check after deployment: GitLab main pipeline #2933465351, job #17080390567, PUBLIC_VERCEL_SMOKE_PASS.
+- Latest GitHub PR quality run #38052358434: SUCCESS including Chrome browser QA on 360/768/1440 px and screenshot artifact #11669871395.
+- Public preview is appropriate to share as a transparent engineering portfolio case study, not as live PIHPS price coverage.
+- GitLab Pages still returns 403 but is no longer the primary publication URL. Vercel GitHub integration is still manual setup.
+- This final release-status checkpoint only edits documentation; website/ hashes and production content remain unchanged.
