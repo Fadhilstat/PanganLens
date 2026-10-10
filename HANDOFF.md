@@ -15,7 +15,7 @@
 - Exact source parity before current milestone: 161/161 file blobs match.
 - GitHub CI #38051263593 successful. GitLab main pipeline #2933444982 successful with GitLab Pages smoke warnings.
 - Vercel manual production deployment dpl_DF3KR3knNBvgf4UkMgLhoVAvttQu READY.
-- Anonymous Vercel HTTP has NOT been verified. No browser layout/keyboard test completed.
+- Anonymous Vercel HTTP was verified by GitLab MR !10 job #17080370537 (all assets and preview snapshot PASS). GitHub Chrome browser QA #114213562658 passed at 360/768/1440 px, including calculator and keyboard focus.
 
 ## This release contract
 
@@ -31,8 +31,8 @@
 ## QA and safety boundaries
 
 - Preserve source snapshot checker, quality gates, data source provenance, accessibility states and no credentials in browser.
-- A GitHub browser-quality job now runs real Chrome at 360px, 768px and 1440px with keyboard focus, overflow, form submit/reset and JavaScript error assertions. Mark PASS only after an actual completed CI run; manual designer visual review remains separate.
+- GitHub browser-quality completed PASS in workflow #38052253101; retained screenshot artifact #11669544645 enables optional manual aesthetics review. Automated browser functional QA and unauthenticated public HTTP smoke are both verified.
 - The blocked GitLab Pages domain must not be promoted as public.
 - No VPS, cloud keys or paid infrastructure requested.
 
-NEXT_ACTION: Verify external anonymous Vercel smoke and exact production source revision. If PASS, carry out real browser QA before posting on LinkedIn.
+NEXT_ACTION: Merge GitHub PR #75 and GitLab MR !10 after green CI, manually redeploy final main source to Vercel with website/-prefixed paths, then rerun public HTTP verification. Public preview can be shared when the updated release passes.

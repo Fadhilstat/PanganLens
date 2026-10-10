@@ -4,7 +4,7 @@
 
 PanganLens explores a practical question: *how can a food-price dashboard make trends understandable without quietly publishing unverified numbers?* It combines guarded source ingestion, a normalized BigQuery model, mapping review, quality gates, and a lightweight public-facing website.
 
-**Portfolio hosting:** the first manual production deployment at [Vercel](https://panganlens-portfolio.vercel.app/) reached `READY` (deployment `dpl_DF3KR3knNBvgf4UkMgLhoVAvttQu`). Anonymous public access remains unverified until the hosted Vercel smoke test passes. GitLab Pages previously returned HTTP 403 and is not the promoted public host. GitLab remains the code and CI mirror. The Vercel GitHub integration for this repository must still be authorized by the owner to enable automatic deployments.
+**Portfolio hosting:** the first manual production deployment at [Vercel](https://panganlens-portfolio.vercel.app/) reached `READY` (deployment `dpl_DF3KR3knNBvgf4UkMgLhoVAvttQu`). Anonymous production access was verified on 10 October 2026 by GitLab MR !10 job #17080370537: `PUBLIC_VERCEL_SMOKE_PASS`. The editorial portfolio preview, CSS, JavaScript and empty validated JSON all loaded without credentials. GitLab Pages previously returned HTTP 403 and is not the promoted public host. GitLab remains the code and CI mirror. The Vercel GitHub integration for this repository must still be authorized by the owner to enable automatic deployments.
 
 **Data status (10 October 2026):** this is a data engineering portfolio preview, **not a live PIHPS price dashboard**. The checked-in production snapshot is empty; visitors can use the calculator with their own numbers.
 

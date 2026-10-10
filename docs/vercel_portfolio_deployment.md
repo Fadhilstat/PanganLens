@@ -53,3 +53,9 @@ exceptions. It retains optional screenshot artifacts for visual review.
 This job tests the merged source layout, not the external host. Combine it with
 GitLab's anonymous production HTTPS smoke and Vercel's exact deployment SHA
 before promoting the site on LinkedIn.
+
+## Verified preview release QA (2026-10-10)
+
+- GitLab MR !10 job #17080370537 returned `PUBLIC_VERCEL_SMOKE_PASS` against the production alias, without tokens. All five static assets and empty valid production snapshot were loaded.
+- GitHub PR #75 full workflow #38052253101 completed SUCCESS. Browser-quality job #114213562658 passed 360/768/1440 px responsive checks and calculator submit/reset; screenshots are in artifact #11669544645.
+- This evidence verifies the initial Vercel editorial preview, not any subsequent changes. Redeploy the exact merged main revision before promoting a newer release, then re-run the public smoke check.

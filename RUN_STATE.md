@@ -4,7 +4,7 @@ Updated: 2026-10-10 (Asia/Jakarta)
 Project: PanganLens Indonesia
 Phases: 2 Technical Implementation, 3 Repository, 4 Go-to-market
 Milestone: Verified public Vercel launch, source parity and frontend QA
-Status: CODE_MERGED, VERCEL_BUILD_READY, ANONYMOUS_HTTP_UNVERIFIED
+Status: RELEASE_CANDIDATE_QA_PASSED, VERCEL_PUBLIC_PREVIEW_VERIFIED, MAIN_REDEPLOY_PENDING
 
 ## Verified source and quality evidence
 
@@ -16,7 +16,7 @@ Status: CODE_MERGED, VERCEL_BUILD_READY, ANONYMOUS_HTTP_UNVERIFIED
 - Vercel personal Hobby team: fadhil-9768s-projects.
 - Vercel new project: panganlens-portfolio, ID prj_Fhc0Q04IUEIPrwwEW1xaF7qTDKEj.
 - Initial manual production deployment dpl_DF3KR3knNBvgf4UkMgLhoVAvttQu: READY with aliases panganlens-portfolio.vercel.app and panganlens-portfolio-fadhil-9768s-projects.vercel.app.
-- Vercel production project has no SSO/password protection in connector metadata, but independent anonymous HTTP availability is not verified.
+- Vercel production access independently VERIFIED: GitLab MR !10 public_site_smoke job #17080370537 returned PUBLIC_VERCEL_SMOKE_PASS (all assets, canonical URL and empty reviewed JSON).
 - A test preview using root-level source files errored NOW_SANDBOX_WORKER_ROOTDIR_NOT_EXIST; production upload must preserve website/ paths for the configured root.
 - Vercel GitHub integration for canonical Fadhilstat/PanganLens was not installed when linking was attempted. Owner action is needed for auto-deploy.
 
@@ -38,15 +38,23 @@ Status: CODE_MERGED, VERCEL_BUILD_READY, ANONYMOUS_HTTP_UNVERIFIED
 
 ## Problems, solutions, opportunities
 
-- HIGH: Anonymous Vercel HTTP access has not yet passed an external smoke test. Deploy READY alone is insufficient.
+- RESOLVED: Anonymous Vercel HTTP smoke PASS from public GitLab runner, no login or credentials.
 - MEDIUM: No GitHub to Vercel auto-deploy integration; manual source upload needs care with the project root and revision.
-- MEDIUM: Visual desktop/mobile/browser audit remains NOT_RUN.
+- RESOLVED FOR FUNCTIONAL QA: GitHub Actions browser-quality job #114213562658 passed responsive Chrome tests at 360/768/1440 px, calculator, keyboard skip-link visibility, empty state, no overflow and zero page errors. Screenshot artifact #11669544645 is available for manual aesthetic review.
 - LOW: GitLab Pages still requires login and remains a documented fallback failure.
 - Opportunity: a clear, reproducible public portfolio launch check demonstrates engineering trust and release discipline.
 
-NOW: GitLab Vercel smoke, exact source redeploy and anonymous availability check.
-NEXT: Browser responsive and calculator QA for 360px, 768px and desktop.
+NOW: Merge verified release PR/MR, manually deploy the exact merged main website/ bundle and rerun anonymous Vercel smoke.
+NEXT: Review retained Chrome screenshots for editorial aesthetics before a high-visibility LinkedIn announcement.
 LATER: Reviewed PIHPS production data under GitHub Issue #48.
 OPTIONAL: Case study visuals and LinkedIn publishing pack.
 
-NEXT_ACTION: Verify new Vercel anonymous smoke job and redeploy the exact passing main revision, then decide launch status from observed results.
+NEXT_ACTION: Merge PR #75 and MR !10 (after green checks), deploy the final merged source to Vercel and rerun public smoke. Mark ready for portfolio sharing only on post-deployment PASS.
+
+## Release candidate QA evidence (2026-10-10)
+
+- GitHub PR #75 browser and full quality workflow run #38052253101: SUCCESS.
+- Chrome browser-quality job #114213562658: PASS at width 360, 768 and 1440 px, real calculator arithmetic 10%/20%, reset, focus, no overflow and no JavaScript page errors.
+- Screenshot artifact 11669544645 exists for manual visual review.
+- GitLab MR !10 pipeline #2933461706: Python and Node checks passed. Vercel smoke job #17080370537: PASS with 13291 HTML bytes, 5 static assets and schema-1 empty preview snapshot.
+- This verifies the existing production Vercel deployment, not the upcoming source changes to JSON caching and CI; redeploy exact main and verify again before declaring current revision live.
