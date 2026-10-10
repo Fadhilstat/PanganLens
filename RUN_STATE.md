@@ -92,3 +92,10 @@ OPTIONAL: Multi-region data quality report after one single-scope capture is rev
 
 NEXT_ACTION: Run source research CI against live PIHPS, review CSV and SHA evidence,
 then decide mappings before any production price publication.
+
+- First live research sample CI artifact #11670741984 (2026-10-10) contained
+  27 price points from 3 source row levels across 9 observed dates (latest
+  2026-10-09), 0 missing cells. Research-only, publish_eligible=false.
+- Review found that a province-filtered source response includes rows for
+  "Semua Provinsi", "DKI Jakarta", and "Kota Jakarta Pusat"; the exporter now
+  names the request filter separately from each row's source level/name.
