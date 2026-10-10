@@ -85,13 +85,13 @@ def test_static_site_publishing_has_fail_closed_snapshot_validation():
 
 def test_public_portfolio_has_real_preview_links_and_social_metadata():
     html = (WEBSITE / "index.html").read_text(encoding="utf-8")
-    public_url = "https://panganlens-679cd2.gitlab.io/"
+    public_url = "https://panganlens-portfolio.vercel.app/"
     assert f'<link rel="canonical" href="{public_url}">' in html
     assert f'<meta property="og:url" content="{public_url}">' in html
     assert '<meta property="og:type" content="website">' in html
     assert '<meta name="twitter:card" content="summary">' in html
-    assert 'href="#simulasi">Coba kalkulator harga</a>' in html
-    assert 'href="#studi-kasus">Baca studi kasus</a>' in html
+    assert 'href="#simulasi">Coba kalkulator harga <span aria-hidden="true">↗</span></a>' in html
+    assert 'href="#studi-kasus">Baca studi kasus <span aria-hidden="true">↗</span></a>' in html
     assert "Harga PIHPS belum dipublikasikan" in html
     assert "https://github.com/Fadhilstat/PanganLens" in html
     assert "https://gitlab.com/fadhilrusydih/panganlens" in html
