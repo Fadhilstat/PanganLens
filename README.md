@@ -4,7 +4,7 @@
 
 PanganLens explores a practical question: *how can a food-price dashboard make trends understandable without quietly publishing unverified numbers?* It combines guarded source ingestion, a normalized BigQuery model, mapping review, quality gates, and a lightweight public-facing website.
 
-**Portfolio website:** [Open PanganLens preview](https://panganlens-679cd2.gitlab.io/) (URL provided by the repository owner). The Pages deployment previously passed CI, but independent anonymous access is still awaiting a passing hosted smoke check. GitLab's API continues to report Pages access as private, so verify the actual URL without logging in before advertising it as publicly accessible. GitHub Pages is optional and not yet enabled.
+**Portfolio website:** [PanganLens GitLab Pages](https://panganlens-679cd2.gitlab.io/) (domain provided by the repository owner). **Anonymous availability is BLOCKED as of 10 October 2026:** hosted smoke job #17076922519 returned HTTP 403 on three attempts. The GitLab Pages deployment succeeded, but project settings still report Pages access as private. This domain should not be advertised as an accessible portfolio until access settings are corrected and the anonymous check passes.
 
 **Data status (10 October 2026):** this is a data engineering portfolio preview, **not a live PIHPS price dashboard**. The checked-in production snapshot is empty; visitors can use the calculator with their own numbers.
 
@@ -168,6 +168,16 @@ Personal data engineering and analytics portfolio project. [LinkedIn](https://ww
 
 Owner steps: set GitLab **Settings > General > Visibility, project features, permissions > Pages** to **Everyone with access** and find the actual URL under **Deploy > Pages**. Optional GitHub site: set **Settings > Pages > Build and deployment > Source: GitHub Actions**, then rerun the existing website workflow. No VPS is needed.
 
+
+## Latest release evidence and access blocker (10 October 2026)
+
+- GitHub PR [#71](https://github.com/Fadhilstat/PanganLens/pull/71) merged at `fc550a128a15b68b3358b8e2dcf5cee8858b47c0`; Actions [#38024816074](https://github.com/Fadhilstat/PanganLens/actions/runs/38024816074) passed Python, JavaScript, Ruff, and PIHPS probe.
+- GitLab MR [!6](https://gitlab.com/fadhilrusydih/panganlens/-/merge_requests/6) merged at `9767c0cd4a1cd198c7c5a2a8c7bedbb2ff60e7eb`; [main pipeline #2932828231](https://gitlab.com/fadhilrusydih/panganlens/-/pipelines/2932828231) passed Python, frontend, and Pages deploy.
+- Exact GitHub/GitLab repository file-content parity: **159 of 159 blob hashes matched**.
+- The nonblocking [public site smoke job #17076922519](https://gitlab.com/fadhilrusydih/panganlens/-/jobs/17076922519) **FAILED**, returning HTTP 403 Forbidden on all three unauthenticated attempts to the website root. The pipeline's green status does not override this separate failed check.
+- GitLab API still reports `pages_access_level: private`, although the repository is public and the owner attempted to change the visibility. Only the project owner can fix the Pages access setting with available tools.
+
+**Current acceptance:** SOURCE_READY and STATIC_DEPLOYED, but ANONYMOUS_ACCESS_BLOCKED and BROWSER_VISUAL_QA_NOT_RUN. Production PIHPS market data remains unpublished and Issue #48 controls cloud activation.
 
 ## Public website checks
 
