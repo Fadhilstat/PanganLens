@@ -13,6 +13,13 @@ PanganLens is a portfolio of public food-price analytics, quality-gated data eng
 - File content SHA parity immediately after MR !6: 159/159 matched. Git history ancestry differs due to earlier snapshot import.
 - Portfolio site HTML includes canonical/Open Graph/X summary pointing to https://panganlens-679cd2.gitlab.io/, useful links to calculator/case study and source repository, and mobile/keyboard CSS.
 
+## Preview-first UX contract
+
+- With the checked-in empty source JSON, the visitor should see the introduction, a data-unavailable notice, the user-input calculator, the case study, and the methodology. Price-only navigation, KPI cards, and unpopulated panels must remain hidden.
+- Source-dependent content appears only for a successfully published snapshot with at least one usable national commodity row. Numeric and string commodity IDs must select the same commodity without hiding regional data.
+- Node tests cover these pure checks; real browser layout and hosted navigation still need independent verification.
+- No fake PIHPS observations or extra cloud activation were introduced.
+
 ## Confirmed launch blocker
 
 - The owner supplied the GitLab unique Pages URL and said settings had been changed.

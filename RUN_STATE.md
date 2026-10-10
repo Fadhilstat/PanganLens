@@ -19,6 +19,14 @@ Status: SOURCE_MERGED_AND_DEPLOYED, ANONYMOUS_PAGES_ACCESS_BLOCKED_HTTP_403
 - Live browser visual, mobile screenshots, working calculator on deployed URL: NOT_RUN because hosted access is blocked.
 - website/data/dashboard.json remains empty. No live validated PIHPS observations, no GCP activation, no VPS.
 
+## Preview-first UX continuation
+
+- The default visitor state prioritizes a working, input-only calculator and the engineering case study over empty price KPIs and disabled data panels.
+- Source-dependent navigation/sections are disclosed only if publication metadata is reviewed and at least one usable national price exists.
+- Commodity IDs are normalized across numeric source rows and string select values, avoiding mismatched regional and national lookup after user selection.
+- Added deterministic Node regression cases for empty/pending snapshots, malformed rows, and ID normalization.
+- This code milestone still requires passing source PR/MR CI and GitLab Pages remains independently blocked by HTTP 403 until owner settings change.
+
 ## Problems, solutions and opportunities
 
 - BLOCKER: Anonymous visitor gets 403 at Pages root. Owner should set Pages access to Everyone with access under Settings > General > Visibility, project features, permissions, and save.

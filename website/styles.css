@@ -175,3 +175,15 @@ main section { scroll-margin-top: 24px; }
   .hero-links a { width: 100%; }
   .footer-links { flex-direction: column; gap: 2px; }
 }
+
+
+/* Show the verified price dashboard only when it has usable source records.
+   The preview keeps the calculator, case study and methodology available. */
+.dashboard-preview nav [data-dashboard-link],
+.dashboard-preview .reading-guide,
+.dashboard-preview .section-intro,
+.dashboard-preview .kpi-grid,
+.dashboard-preview #komoditas,
+.dashboard-preview #wilayah {
+  display: none;
+}
