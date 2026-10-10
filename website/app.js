@@ -36,7 +36,7 @@ function render() {
   } else {
     renderPublishState(readiness === "ready" ? data.publish_state : null);
     if (!national.length) {
-      showNotice("Belum ada harga produksi yang dipublikasikan. Gunakan kalkulator dengan angkamu sendiri; data PIHPS tidak direka.");
+      showNotice("Data produksi belum dipublikasikan. Gunakan kalkulator dengan angkamu sendiri; data PIHPS tidak direka.");
     }
   }
 
