@@ -85,3 +85,10 @@ The metric selectors are pure functions with deterministic ordering and tests. T
 The exporter checks for an active `SUCCESS` publish state before querying prices, and uses the active observation date to bound national and provincial data. An empty or invalid publish pointer cannot be silently interpreted as permission to display market values. The JSON writer refuses nonempty prices without valid metadata.
 
 A standalone Python script validates the deploy artifact, and the browser repeats the schema, date, status, and freshness checks. The checked-in empty JSON remains legal, allowing a reliable portfolio preview without fake market observations. The rules are covered by pytest and Node tests; end-to-end GCP ingestion remains a separate, unverified activation step.
+
+
+## Portfolio launch and link provenance
+
+The owner-provided website URL is [PanganLens GitLab Pages](https://panganlens-679cd2.gitlab.io/). This is a static portfolio preview with empty production data and an independently testable user-input calculator. The site includes public URL metadata and direct pathways to its source and engineering methodology.
+
+Actual anonymous availability requires a successful hosted `public_site_smoke` job or a separately verified signed-out browser session. A green Pages deployment only confirms artifact publication, not anonymous access. A screenshot review of 360 px, tablet, and desktop layouts also remains separate from unit testing. No fabricated traffic, validated price coverage, or performance claims are made.

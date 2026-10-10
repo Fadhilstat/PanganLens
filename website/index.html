@@ -3,9 +3,19 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="PanganLens Indonesia: studi kasus data engineering harga pangan, dashboard transparan, dan latihan analisis perubahan harga.">
+  <meta name="description" content="PanganLens Indonesia: portfolio data engineering dan analitik harga pangan dengan kalkulator interaktif, quality gate, dan metodologi transparan.">
   <meta name="theme-color" content="#356859">
-  <title>PanganLens Indonesia</title>
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://panganlens-679cd2.gitlab.io/">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="id_ID">
+  <meta property="og:title" content="PanganLens Indonesia | Studi kasus analitik harga pangan">
+  <meta property="og:description" content="Lihat arsitektur kualitas data dan coba sendiri logika perbandingan harga. Preview portfolio, bukan harga pangan live.">
+  <meta property="og:url" content="https://panganlens-679cd2.gitlab.io/">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="PanganLens Indonesia | Studi kasus analitik harga pangan">
+  <meta name="twitter:description" content="Portfolio data engineering dengan kalkulator harga interaktif dan publikasi data yang diaudit.">
+  <title>PanganLens Indonesia | Portfolio Analitik Harga Pangan</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -28,9 +38,13 @@
   <main id="main-content">
     <section class="hero" id="ringkasan">
       <div>
-        <p class="eyebrow">MONITOR HARGA PANGAN</p>
-        <h1>Pahami perubahan harga tanpa tenggelam dalam angka.</h1>
-        <p class="hero-copy">Mulai dari ringkasan nasional, pilih komoditas yang ingin dilihat, lalu bandingkan kondisinya antarprovinsi. Angka produksi hanya tampil setelah lolos pemeriksaan kualitas. Saat belum tersedia, kamu bisa mencoba rumus perhitungannya sendiri.</p>
+        <p class="eyebrow">STUDI KASUS DATA PUBLIK</p>
+        <h1>Data harga pangan perlu dipercaya sebelum dibandingkan.</h1>
+        <p class="hero-copy">PanganLens menunjukkan bagaimana data harga diperiksa, dimodelkan, dan disiapkan untuk analisis. Harga PIHPS belum dipublikasikan, tetapi kamu bisa mencoba cara menghitung perubahan harga dengan angkamu sendiri.</p>
+        <div class="hero-links">
+          <a class="hero-link-primary" href="#simulasi">Coba kalkulator harga</a>
+          <a class="hero-link-secondary" href="#studi-kasus">Baca studi kasus</a>
+        </div>
       </div>
       <aside class="freshness-card" aria-live="polite">
         <span class="status-dot" id="status-dot"></span>
@@ -177,7 +191,11 @@
   </main>
 
   <footer>
-    <p>PanganLens Indonesia. Studi kasus data publik dan latihan perhitungan. Bukan alat penetapan harga atau rekomendasi transaksi.</p>
+    <p>PanganLens Indonesia. Studi kasus data publik dan latihan perhitungan, bukan harga pasar terkini atau rekomendasi transaksi.</p>
+    <p class="footer-links">
+      <a href="https://github.com/Fadhilstat/PanganLens" target="_blank" rel="noopener noreferrer">Kode dan pengujian di GitHub</a>
+      <a href="https://gitlab.com/fadhilrusydih/panganlens" target="_blank" rel="noopener noreferrer">CI dan riwayat release di GitLab</a>
+    </p>
   </footer>
   <script src="dashboard_metrics.js" defer></script>
   <script src="app.js" defer></script>

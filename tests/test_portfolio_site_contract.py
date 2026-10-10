@@ -81,3 +81,26 @@ def test_static_site_publishing_has_fail_closed_snapshot_validation():
     assert workflow.index("Validate public snapshot") < workflow.index("Configure Pages")
     assert command in gitlab_ci
     assert gitlab_ci.index(command) > gitlab_ci.index("deploy_portfolio_site:")
+
+
+def test_public_portfolio_has_real_preview_links_and_social_metadata():
+    html = (WEBSITE / "index.html").read_text(encoding="utf-8")
+    public_url = "https://panganlens-679cd2.gitlab.io/"
+    assert f'<link rel="canonical" href="{public_url}">' in html
+    assert f'<meta property="og:url" content="{public_url}">' in html
+    assert '<meta property="og:type" content="website">' in html
+    assert '<meta name="twitter:card" content="summary">' in html
+    assert 'href="#simulasi">Coba kalkulator harga</a>' in html
+    assert 'href="#studi-kasus">Baca studi kasus</a>' in html
+    assert "Harga PIHPS belum dipublikasikan" in html
+    assert "https://github.com/Fadhilstat/PanganLens" in html
+    assert "https://gitlab.com/fadhilrusydih/panganlens" in html
+
+
+def test_launch_links_have_visible_keyboard_and_mobile_targets():
+    css = (WEBSITE / "styles.css").read_text(encoding="utf-8")
+    assert ".hero-links a { min-height: 44px;" in css
+    assert ".hero-link-primary:hover" in css
+    assert ".footer-links a {" in css
+    assert "width: 100%;" in css
+    assert ":focus-visible" in css
