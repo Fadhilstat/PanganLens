@@ -66,3 +66,11 @@ NEXT_ACTION: Owner connects Vercel GitHub integration to Fadhilstat/PanganLens f
 
 NEXT_ACTION: Inspect CI source artifact and validate the raw-to-reviewed mapping
 plan, then continue Issue #48 activation through explicit operator-controlled gates.
+
+- Live PIHPS source research evidence was captured in GitHub Actions:
+  27 source price points, 9 observation dates, 3 original row levels,
+  0 missing price cells, latest 2026-10-09. No warehouse publication.
+- The province filter is not each returned row's geographic identity.
+  Source rows in the sample included all-provinces, DKI and Jakarta Pusat.
+  CSV fields now use request_province_filter_id/name to prevent that
+  analytical join error before reviewed canonical mapping.
