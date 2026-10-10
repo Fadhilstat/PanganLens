@@ -1,10 +1,18 @@
 """No-network tests for the anonymous Pages smoke workflow."""
 
+from importlib.util import module_from_spec, spec_from_file_location
+from pathlib import Path
 from urllib.parse import urlparse
 
 import pytest
 
-from scripts.check_public_site import PUBLIC_SITE, verify_public_site
+SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "check_public_site.py"
+SPEC = spec_from_file_location("panganlens_public_site_smoke", SCRIPT)
+assert SPEC is not None and SPEC.loader is not None
+MODULE = module_from_spec(SPEC)
+SPEC.loader.exec_module(MODULE)
+PUBLIC_SITE = MODULE.PUBLIC_SITE
+verify_public_site = MODULE.verify_public_site
 
 HTML = f"""<html><head><title>PanganLens Indonesia</title>
 <link rel="canonical" href="{PUBLIC_SITE}">
