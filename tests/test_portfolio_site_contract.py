@@ -61,3 +61,10 @@ def test_gitlab_pages_publish_is_guarded_by_default_branch_and_quality():
     assert "CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH" in job
     assert "python_quality" in job
     assert "frontend_quality" in job
+
+def test_metrics_guard_does_not_count_missing_region_gaps_as_zero():
+    app = (WEBSITE / "app.js").read_text(encoding="utf-8")
+    assert "PanganLensMetrics.selectRegions(rows)" in app
+    assert "price_gap_vs_province_average_pct || 0" not in app
+    html = (WEBSITE / "index.html").read_text(encoding="utf-8")
+    assert 'src="dashboard_metrics.js"' in html

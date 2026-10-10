@@ -69,3 +69,12 @@ Record PASS only after a real test or pipeline completed successfully. A green s
 ## Next milestone
 
 Activate the data path with a reviewed plan and short-lived identities, then publish a first verified snapshot with explicit coverage, revision history, and missing-data indicators. A public demo can be portfolio-ready before a live-data system is production-ready, provided the difference is clear.
+
+
+## Sign-aware analytical semantics
+
+The production UI's movement summary must not label the least-negative price change as a rise, or the least-positive change as a fall. A positive daily percentage can qualify as a rise and a negative value can qualify as a fall; a true zero belongs in neither category. Missing and malformed observations are excluded rather than coerced to zero.
+
+For the regional comparison, a missing province-versus-average gap means the comparison is unavailable, not that the region exactly matches its average. A true numeric zero may appear as "setara rata-rata". Rows must also have a positive numeric price and a named province before ranking.
+
+The metric selectors are pure functions with deterministic ordering and tests. They do not fabricate or backfill price data. This boundary matters especially when a previously empty dashboard begins receiving real curated snapshots.

@@ -108,6 +108,17 @@ Then open http://localhost:8000. There is no authentication, running database, b
 | [RUN_STATE.md](RUN_STATE.md) | Most recent execution checkpoint |
 | [HANDOFF.md](HANDOFF.md) | Safe continuation instructions |
 
+## Interpretation safeguards
+
+A percentage is only useful when its sign, denominator and missing-data behavior are correct:
+
+- **Kenaikan terbesar:** choose the highest valid **positive** daily change. When every valid commodity falls or stays flat, show no rise.
+- **Penurunan terbesar:** choose the lowest valid **negative** daily change. When every valid commodity rises or stays flat, show no fall.
+- **Provincial comparison:** a missing price gap is unknown, not zero. Rows lacking a valid gap or positive price are excluded from ranking. An actual numeric zero gap is retained as an equal-to-average observation.
+- **Price trend:** previous and current prices must both be positive before drawing a comparison.
+
+The business logic is isolated in [website/dashboard_metrics.js](website/dashboard_metrics.js), with 9 sign, missingness, input and ranking tests in [tests/dashboard_metrics.test.cjs](tests/dashboard_metrics.test.cjs). The interactive calculator is intentionally separate from the publication snapshot and continues to use only visitor-provided input.
+
 ## Evidence and honest limitations
 
 **Implemented:** guarded source interactions, numeric parsing, duplicate handling, review gates, BigQuery schemas, snapshot exporter, safety tests, and a public-site UI. CI checks are configured in GitHub and GitLab.

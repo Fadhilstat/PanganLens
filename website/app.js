@@ -50,11 +50,18 @@ function setFreshness(label, observationDate, tone) {
 }
 
 function renderMovers(rows) {
-  const comparable = rows.filter(row => finite(row.daily_change_pct));
-  if (!comparable.length) return;
-  comparable.sort((a, b) => Number(b.daily_change_pct) - Number(a.daily_change_pct));
-  setMover("top-rise", "top-rise-detail", comparable[0]);
-  setMover("top-fall", "top-fall-detail", comparable[comparable.length - 1]);
+  const { rise, fall } = PanganLensMetrics.selectMovers(rows);
+  for (const [valueId, detailId, record, absent] of [
+    ["top-rise", "top-rise-detail", rise, "Tidak ada kenaikan valid"],
+    ["top-fall", "top-fall-detail", fall, "Tidak ada penurunan valid"]
+  ]) {
+    if (record) {
+      setMover(valueId, detailId, record);
+    } else {
+      document.getElementById(valueId).textContent = "-";
+      document.getElementById(detailId).textContent = rows.length ? absent : "Belum tersedia";
+    }
+  }
 }
 
 function setMover(valueId, detailId, row) {
@@ -95,10 +102,10 @@ function renderCommodityDetail() {
   const row = national[0];
   if (!row) return;
 
-  document.getElementById("latest-price").textContent = formatPrice(row.price_idr);
+  document.getElementById("latest-price").textContent = PanganLensMetrics.isValidPrice(row.price_idr) ? formatPrice(row.price_idr) : "-";
   document.getElementById("latest-price-meta").textContent = `${row.commodity_name} · ${row.channel_name} · per ${row.unit_symbol}`;
   const changeElement = document.getElementById("daily-change");
-  if (finite(row.daily_change_pct)) {
+  if (PanganLensMetrics.isValidPrice(row.price_idr) && PanganLensMetrics.finiteNumber(row.daily_change_pct) !== null) {
     const change = Number(row.daily_change_pct);
     changeElement.textContent = percent.format(change);
     changeElement.style.color = change > 0 ? "var(--red)" : change < 0 ? "var(--green)" : "var(--text)";
@@ -114,9 +121,9 @@ function renderTrend(row) {
   const svg = document.getElementById("trend-chart");
   const empty = document.getElementById("trend-empty");
   svg.innerHTML = "";
-  const previous = finite(row.previous_price_idr) ? Number(row.previous_price_idr) : null;
-  const current = Number(row.price_idr);
-  if (previous === null || !Number.isFinite(current)) {
+  const previous = PanganLensMetrics.isValidPrice(row.previous_price_idr) ? Number(row.previous_price_idr) : null;
+  const current = PanganLensMetrics.isValidPrice(row.price_idr) ? Number(row.price_idr) : null;
+  if (previous === null || current === null) {
     empty.classList.remove("hidden");
     return;
   }
@@ -169,16 +176,19 @@ function renderRegions(rows) {
   const list = document.getElementById("region-list");
   const empty = document.getElementById("region-empty");
   list.innerHTML = "";
-  if (!rows.length) {
+  const sorted = PanganLensMetrics.selectRegions(rows);
+  if (!sorted.length) {
+    empty.textContent = rows.length
+      ? "Perbandingan provinsi belum tersedia: nilai harga atau selisih tidak valid."
+      : "Data wilayah akan muncul setelah snapshot produksi tersedia.";
     empty.classList.remove("hidden");
     return;
   }
   empty.classList.add("hidden");
-  const sorted = [...rows].sort((a, b) => Math.abs(Number(b.price_gap_vs_province_average_pct || 0)) - Math.abs(Number(a.price_gap_vs_province_average_pct || 0))).slice(0, 10);
-  const maxGap = Math.max(...sorted.map(row => Math.abs(Number(row.price_gap_vs_province_average_pct || 0))), 0.01);
+  const maxGap = Math.max(...sorted.map(row => Math.abs(Number(row.price_gap_vs_province_average_pct))), 0.01);
   for (const row of sorted) {
     const item = document.createElement("div");
-    const gap = Number(row.price_gap_vs_province_average_pct || 0);
+    const gap = Number(row.price_gap_vs_province_average_pct);
     const directionClass = gap > 0 ? "above" : gap < 0 ? "below" : "same";
     const directionLabel = gap > 0 ? "di atas rata-rata" : gap < 0 ? "di bawah rata-rata" : "setara rata-rata";
     item.className = `region-row ${directionClass}`;
