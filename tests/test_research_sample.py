@@ -65,7 +65,7 @@ def test_research_sample_preserves_real_source_identifiers_without_mapping():
     assert report["missing_price_cells"] == 1
     assert report["latest_price_observation_age_days"] == 2
     assert report["review_flags"] == ["SOURCE_MAPPING_NOT_REVIEWED"]
-    assert rows[0]["source_province_id"] == "13"
+    assert rows[0]["request_province_filter_id"] == "13"
     assert rows[0]["source_commodity_id"] == "com_3"
     assert rows[0]["source_row_name"] == "DKI Jakarta"
     assert rows[0]["price_idr"] == "15000"
@@ -169,3 +169,24 @@ def test_research_manifest_rejects_forged_ready_state(tmp_path):
     report["publish_eligible"] = True
     with pytest.raises(ValueError, match="nonpublishable"):
         write_research_sample(report, rows, tmp_path / "out", Path("."))
+
+
+def test_province_request_filter_is_not_a_canonical_geographic_row_id():
+    provinces, commodities, _, request, today = inputs()
+    grid = capture([
+        {"no": "I", "level": "0", "name": "Semua Provinsi", "09/10/2026": "16650"},
+        {"no": "II", "level": "1", "name": "DKI Jakarta", "09/10/2026": "17050"},
+        {"no": "1", "level": "2", "name": "Kota Jakarta Pusat",
+         "09/10/2026": "17050"},
+    ])
+    report, rows = build_research_sample(
+        provinces, commodities, grid, request, today
+    )
+    assert report["request_province_filter_id"] == "13"
+    assert report["source_row_level_counts"] == {"0": 1, "1": 1, "2": 1}
+    assert {row["source_row_name"] for row in rows} == {
+        "Semua Provinsi", "DKI Jakarta", "Kota Jakarta Pusat"
+    }
+    assert {row["request_province_filter_id"] for row in rows} == {"13"}
+    assert all("source_province_id" not in row for row in rows)
+    assert report["publish_eligible"] is False
