@@ -46,9 +46,10 @@ jobs:
       - name: Check JavaScript syntax
         run: |
           node --check website/app.js
+          node --check website/dashboard_metrics.js
           node --check website/price_playground.js
       - name: Test comparison math
-        run: node --test tests/price_playground.test.cjs
+        run: node --test tests/dashboard_metrics.test.cjs tests/price_playground.test.cjs
 
   live-pihps-probe:
     runs-on: ubuntu-latest

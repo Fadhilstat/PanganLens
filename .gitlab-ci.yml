@@ -34,8 +34,9 @@ frontend_quality:
   timeout: 5m
   script:
     - node --check website/app.js
+    - node --check website/dashboard_metrics.js
     - node --check website/price_playground.js
-    - node --test tests/price_playground.test.cjs
+    - node --test tests/dashboard_metrics.test.cjs tests/price_playground.test.cjs
 
 deploy_portfolio_site:
   stage: deploy

@@ -45,3 +45,12 @@ def test_dashboard_keeps_warning_and_empty_states_explicit():
     assert 'id="data-notice"' in html
     assert "Data produksi belum dipublikasikan" in javascript
     assert "Data tidak ditampilkan agar tidak menyesatkan" in javascript
+
+def test_browser_loads_validated_metrics_before_dashboard_script():
+    html = (WEBSITE / "index.html").read_text(encoding="utf-8")
+    assert '<script src="dashboard_metrics.js" defer></script>' in html
+    assert html.index('src="dashboard_metrics.js"') < html.index('src="app.js"')
+    js = (WEBSITE / "app.js").read_text(encoding="utf-8")
+    assert "PanganLensMetrics.selectMovers" in js
+    assert "PanganLensMetrics.selectRegions" in js
+    assert "price_gap_vs_province_average_pct || 0" not in js

@@ -73,5 +73,7 @@ def test_gitlab_frontend_quality_uses_node_without_npm_install():
     )[0]
     assert "node:22-bookworm-slim" in job
     assert "node --check website/app.js" in job
-    assert "node --test tests/price_playground.test.cjs" in job
+    assert "node --check website/dashboard_metrics.js" in job
+    assert "node --check website/price_playground.js" in job
+    assert "node --test tests/dashboard_metrics.test.cjs tests/price_playground.test.cjs" in job
     assert "npm install" not in job

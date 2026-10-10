@@ -2,45 +2,43 @@
 
 Updated: 2026-10-10 (Asia/Jakarta)
 Project: PanganLens Indonesia
-Phases: Technical Implementation / Repository / Portfolio Preview
-Status: PREVIEW_PAGES_DEPLOYED, PUBLIC_ACCESS_NOT_VERIFIED
+Phase: 2 Technical Implementation / 3 Repository / 4 Portfolio Preview
+Milestone: Analytical semantics hardening for public portfolio
+Status: RELEASE_CANDIDATE_NOT_YET_MERGED
 
-## Verified release
+## Verified baseline
 
-- GitHub canonical source: https://github.com/Fadhilstat/PanganLens
-- GitHub PR #67 merged at 1924451616d42949549cc86512455e1b56821d0a.
-- GitHub full quality workflow #37974789018: SUCCESS, including Python, Node, and live PIHPS source probe.
-- GitLab target: https://gitlab.com/fadhilrusydih/panganlens
-- GitLab MR !2 merged at cd100cb30929d48703b15e5870a6b950ef78d79b.
-- GitLab MR pipeline #2931785591: SUCCESS.
-- GitLab main pipeline #2931787912: SUCCESS, including Python, Node, and static Pages deployment.
-- File content matched 153/153 paths and Git blob SHA values after the merges; commit ancestry differs.
-- Historical release SHAs are not permanent HEADs; fetch live refs before a new push.
+- Canonical GitHub main: 761b6eebc9dfc848785e6d0e326ef06d06d9d068
+- GitLab main: 590bada6cf6d270bc126bf4de5681967c8bf8de1
+- At the last release, file-content parity was 153/153 while Git histories differed due to initial snapshot import.
+- GitLab pipeline 2931802651: SUCCESS, including Pages deployment.
+- GitLab project is public, but Pages access level private (checked again 2026-10-10).
+- GitHub Pages is not enabled: last workflow 37974862397 failed Configure Pages with HTTP 404.
+- Source price JSON remains empty; no verified public price data. GitHub issue #48 remains the cloud activation checkpoint.
 
-## Public access and production boundaries
+## Candidate changes
 
-- GitLab project Pages access level: private. Public anonymous browsing: NOT_VERIFIED.
-- GitHub Pages workflow #37974862397: FAIL during Configure Pages (HTTP 404, site not enabled in repository settings).
-- Real public Pages URL: NOT_VERIFIED. Do not invent or advertise it.
-- Production website/data/dashboard.json remains empty with null publish_state.
-- GCP warehouse activation and real market prices: NOT_READY, separately tracked at GitHub Issue #48.
-- GitLab Pages deployment is a portfolio preview, not proof of production market data.
+- New browser/Node module website/dashboard_metrics.js for signed movers and missing-safe province ranks.
+- New Node unit tests tests/dashboard_metrics.test.cjs.
+- Integrate validated metric selection in website/app.js, with nonnumeric/zero prices excluded from movement and trend displays.
+- Update index.html script order, GitHub and GitLab frontend CI tests, UX contract tests, and case-study documentation.
+- Keep static preview as a portfolio sample, never pretend production prices are live.
+- No VPS, no service credentials, no BigQuery writes, no production deployment configuration changes.
 
-## QA
+## Validation
 
-- Core Python CI, lint, compile: PASS on both review workflows.
-- Calculator Node unit tests (7), syntax checks: PASS.
-- Full visual, keyboard and responsive browser QA on hosted URL: NOT_RUN.
-- No VPS, GCP credential, source data fixture, ingestion schedule, or extra cloud privilege introduced.
+- Local Node tests for new metric module: PASS (9/9).
+- Git blob SHA parity of tested metric module and tests with candidate GitHub tree: PASS.
+- GitHub integrated CI: NOT_RUN on new candidate.
+- GitLab integrated CI and Pages: NOT_RUN on new candidate.
+- Live browser visual QA: NOT_RUN.
+- Anonymous Pages access: NOT_VERIFIED due to private Pages setting.
+- Owner approval: user explicitly granted APPROVE PUSH and APPROVE MERGE for this continuation.
+- Merge still requires a reviewed diff and green CI on each platform.
 
-## Final owner action
+NOW: CI-gated release of the candidate on GitHub then GitLab, with full blob parity.
+NEXT: Owner makes GitLab Pages viewable by everyone and verifies real public URL from Deploy > Pages.
+LATER: Complete GCP activation Issue #48 and publish first reviewed curated dataset.
+OPTIONAL: Browser E2E and accessibility testing on public URL.
 
-NOW: Set Pages access to Everyone with access under GitLab Settings > General > Visibility, project features, permissions, then verify the actual Pages URL from Deploy > Pages in a logged-out browser.
-
-NEXT: Optionally configure GitHub Settings > Pages > Source: GitHub Actions and rerun the website dashboard workflow.
-
-LATER: Finish Issue #48 activation and publish a first curated price snapshot.
-
-OPTIONAL: Add browser E2E and accessibility testing after a reachable site URL exists.
-
-NEXT_ACTION: Verify anonymous GitLab Pages access and its real URL, then add only that verified URL to README and portfolio profiles.
+NEXT_ACTION: Push candidate to one GitHub PR, verify CI and merge; mirror changed files to one GitLab MR, verify CI and merge; recheck Pages visibility and public URL.
