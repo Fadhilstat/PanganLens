@@ -18,7 +18,8 @@ HTML = f"""<html><head><title>PanganLens Indonesia</title>
 <link rel="canonical" href="{PUBLIC_SITE}">
 <meta property="og:url" content="{PUBLIC_SITE}">
 <link rel="stylesheet" href="styles.css"></head>
-<body class="dashboard-preview editorial-site"><section id="data-notice"></section><form id="price-calculator"></form>
+<body class="dashboard-preview editorial-site">
+<section id="data-notice"></section><form id="price-calculator"></form>
 <script src="app.js"></script><script src="dashboard_metrics.js"></script>
 <script src="price_playground.js"></script></body></html>"""
 
