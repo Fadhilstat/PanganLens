@@ -33,8 +33,8 @@ RESEARCH_STATUS = "UNREVIEWED_SOURCE_SAMPLE"
 CSV_FIELDS = (
     "review_status",
     "source_system",
-    "source_province_id",
-    "source_province_name",
+    "request_province_filter_id",
+    "request_province_filter_name",
     "source_commodity_id",
     "source_commodity_name",
     "source_unit",
@@ -135,8 +135,8 @@ def build_research_sample(
             {
                 "review_status": RESEARCH_STATUS,
                 "source_system": "PIHPS",
-                "source_province_id": request.province_id,
-                "source_province_name": province["name"].strip(),
+                "request_province_filter_id": request.province_id,
+                "request_province_filter_name": province["name"].strip(),
                 "source_commodity_id": request.comcat_id,
                 "source_commodity_name": commodity["name"].strip(),
                 "source_unit": str(commodity["denomination"]).strip(),
@@ -160,6 +160,13 @@ def build_research_sample(
         raise PihpsInterfaceError("latest source price observation is future-dated")
     lag = (reference_date - latest).days
     review_flags = ["SOURCE_MAPPING_NOT_REVIEWED"]
+    # The requested province is a filter, not the geographic identity of
+    # every row. A single PIHPS response may contain national, province,
+    # and city levels. Keep raw source row level and name for review.
+    source_level_counts: dict[str, int] = {}
+    for row in rows:
+        level = row["source_row_level"]
+        source_level_counts[level] = source_level_counts.get(level, 0) + 1
     if lag > 3:
         review_flags.append("OBSERVATION_OLDER_THAN_3_DAYS")
 
@@ -169,8 +176,8 @@ def build_research_sample(
         "warehouse_written": False,
         "source": "PIHPS Bank Indonesia public website interface",
         "reference_date": reference_date.isoformat(),
-        "source_province_id": request.province_id,
-        "source_province_name": province["name"].strip(),
+        "request_province_filter_id": request.province_id,
+        "request_province_filter_name": province["name"].strip(),
         "source_commodity_id": request.comcat_id,
         "source_commodity_name": commodity["name"].strip(),
         "source_unit": str(commodity["denomination"]).strip(),
@@ -186,6 +193,7 @@ def build_research_sample(
         "usable_price_points": len(parsed.points),
         "missing_price_cells": parsed.missing_price_cells,
         "observed_days": len({point.observation_date for point in parsed.points}),
+        "source_row_level_counts": dict(sorted(source_level_counts.items())),
         "latest_price_observation_date": latest.isoformat(),
         "latest_price_observation_age_days": lag,
         "review_flags": review_flags,
