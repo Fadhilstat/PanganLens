@@ -41,7 +41,15 @@ class FakeClient:
 def test_exporter_reads_only_curated_dashboard_views():
     client = FakeClient(
         [
-            [FakeRow({"active_observation_date": date(2026, 8, 18), "freshness_label": "Terkini", "active_run_status": "SUCCESS"})],
+            [
+                FakeRow(
+                    {
+                        "active_observation_date": date(2026, 8, 18),
+                        "freshness_label": "Terkini",
+                        "active_run_status": "SUCCESS",
+                    }
+                )
+            ],
             [FakeRow({"commodity_id": "beras", "price_idr": Decimal("62650")})],
             [FakeRow({"province_id": "jabar", "price_idr": Decimal("63000")})],
         ]
