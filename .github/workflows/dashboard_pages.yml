@@ -79,6 +79,9 @@ jobs:
             --project-id "$GCP_PROJECT_ID" \
             --output website/data/dashboard.json
 
+      - name: Validate public snapshot
+        run: python scripts/check_public_snapshot.py website/data/dashboard.json
+
       - name: Configure Pages
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
 

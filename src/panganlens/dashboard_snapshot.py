@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
@@ -16,6 +17,23 @@ from panganlens.warehouse.loader import PROJECT_ID_PATTERN
 
 DEFAULT_LOCATION = WAREHOUSE_LOCATION
 DEFAULT_MAXIMUM_BYTES_BILLED = 250_000_000
+REVIEWED_FRESHNESS_LABELS = frozenset({"Terkini", "Perlu diperiksa", "Data lama"})
+
+
+def valid_publication_state(state: dict[str, Any] | None) -> bool:
+    """Require a successful published run and a reviewed observation date."""
+    if not isinstance(state, dict):
+        return False
+    if state.get("active_run_status") != "SUCCESS":
+        return False
+    day = state.get("active_observation_date")
+    if not isinstance(day, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", day):
+        return False
+    try:
+        date.fromisoformat(day)
+    except ValueError:
+        return False
+    return state.get("freshness_label") in REVIEWED_FRESHNESS_LABELS
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,6 +81,17 @@ class BigQueryDashboardSnapshotExporter:
             raise RuntimeError("publish state returned more than one row")
         publish_state = publish_rows[0] if publish_rows else None
 
+        if publish_state is None:
+            # No active publish pointer means no public prices, even when marts have rows.
+            return DashboardSnapshot(
+                generated_at=datetime.now(UTC).isoformat(),
+                publish_state=None,
+                national_prices=[],
+                province_prices=[],
+            )
+        if not valid_publication_state(publish_state):
+            raise RuntimeError("publish state is not eligible for public prices")
+
         return DashboardSnapshot(
             generated_at=datetime.now(UTC).isoformat(),
             publish_state=publish_state,
@@ -88,6 +117,12 @@ def dashboard_snapshot_queries(project_id: str) -> dict[str, str]:
 
 def write_snapshot(snapshot: DashboardSnapshot, output_path: str | Path) -> None:
     """Write JSON atomically so the website never sees a partial snapshot."""
+
+    if snapshot.publish_state is None:
+        if snapshot.national_prices or snapshot.province_prices:
+            raise ValueError("cannot publish prices without an active publish state")
+    elif not valid_publication_state(snapshot.publish_state):
+        raise ValueError("cannot publish prices with an invalid publish state")
 
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -138,6 +173,11 @@ WITH history AS (
       ORDER BY observation_date DESC, loaded_at DESC
     ) AS latest_rank
   FROM `{project_id}.panganlens_mart.vw_looker_national_price_daily`
+  WHERE observation_date <= (
+    SELECT active_observation_date
+    FROM `{project_id}.panganlens_mart.vw_looker_publish_state`
+    WHERE active_run_status = 'SUCCESS'
+  )
 )
 SELECT
   observation_date,
@@ -174,6 +214,11 @@ SELECT
   province_average_price_idr,
   price_gap_vs_province_average_pct
 FROM `{project_id}.panganlens_mart.vw_looker_province_map`
+WHERE observation_date = (
+  SELECT active_observation_date
+  FROM `{project_id}.panganlens_mart.vw_looker_publish_state`
+  WHERE active_run_status = 'SUCCESS'
+)
 ORDER BY commodity_display_order, commodity_name, channel_name, province_name
 """
 

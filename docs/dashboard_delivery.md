@@ -64,3 +64,12 @@ GitHub Pages is a second optional static publishing route. The existing dashboar
 GitHub PR #67 passed quality CI #37974789018. GitLab MR !2 and main pipelines #2931785591 and #2931787912 passed, including static Pages deployment. Full file-content parity across the two repositories: 153/153 matching Git blob SHA values.
 
 Anonymous Pages access is NOT_VERIFIED: the GitLab project reports pages_access_level private. Separately, GitHub Pages workflow #37974862397 failed at Configure Pages because repository Pages was not enabled (HTTP 404). Neither is evidence of failure of the dashboard source code. Make Pages public and validate an actual URL without authentication before advertising it as a live portfolio link.
+
+
+## Publication-gated price export (release candidate, 10 October 2026)
+
+The exporter reads the reviewed `vw_looker_publish_state` first. If no active pointer exists, it writes an empty snapshot and skips price queries. If publication metadata is invalid, the export fails before the website JSON is replaced. National history may include dates up to the active observation date; province rows must match that exact date.
+
+The browser checks JSON schema version, array shapes, successful publication run, ISO observation date, and reviewed freshness labels before displaying a price. A stale but valid publication can still be shown with its existing warning label; missing or invalid provenance cannot.
+
+Both the GitHub Pages and GitLab Pages deployment steps must run `python scripts/check_public_snapshot.py website/data/dashboard.json` before packaging the site. The website preview uses an intentionally empty JSON file and does not claim live PIHPS prices. This static validation is separate from BigQuery source, mapping, and operational checks.

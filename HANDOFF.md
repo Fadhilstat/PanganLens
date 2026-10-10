@@ -1,35 +1,34 @@
 # HANDOFF
 
-## Product and purpose
+## Portfolio intent and source of truth
 
-PanganLens Indonesia is a food-price data engineering and analytics portfolio. It combines guarded PIHPS ingestion, reviewed mapping, BigQuery warehouse contracts, curated mart publication rules, and a static dashboard. Do not claim live market prices until source, mapping, quality and publish-state gates pass. The public snapshot is currently empty. The separate browser calculator uses visitor-provided numbers only.
+PanganLens is a public food-price analytics and data engineering portfolio, with static hosting but no fabricated market price feed. GitHub Fadhilstat/PanganLens is canonical, and the linked GitLab repository is fadhilrusydih/panganlens. The two repositories have different commit ancestry because GitLab was initially initialized from a content snapshot. Use file blob SHA parity to verify mirroring.
 
-## Verified baseline at 10 October 2026
+## Verified baseline (10 October 2026)
 
-- GitHub canonical: https://github.com/Fadhilstat/PanganLens
-- GitLab project: https://gitlab.com/fadhilrusydih/panganlens
-- GitHub pre-candidate main SHA 761b6eebc9dfc848785e6d0e326ef06d06d9d068.
-- GitLab pre-candidate main SHA 590bada6cf6d270bc126bf4de5681967c8bf8de1.
-- Prior 153 Git blobs matched across both platforms, but commit histories differ from GitLab snapshot import.
-- GitLab prior main pipeline 2931802651: SUCCESS with static Pages job.
-- GitLab pages_access_level: private, so an anonymous public website is not yet verified.
-- GitHub Pages not yet enabled in repo settings, prior deployment workflow #37974862397 returned Configure Pages 404.
-- Cloud readiness and price publication gated separately by GitHub issue #48.
+- GitHub main: 0d9f668ecd2a1c0a0152c554afe07a67f2b700a8.
+- GitLab main: 4843ec71c3f20cac6b6cd76bffcae26995fd39c9.
+- Previous release: GitHub PR #69, GitLab MR !4; GitLab pipeline #2932618806 SUCCESS.
+- 155 of 155 source blob hashes matched at that release.
+- GitLab project public but pages_access_level private. Previous GitHub Pages workflow blocked by disabled Pages configuration.
+- Source price JSON is empty. GitHub Issue #48 separately gates cloud activation.
 
-## Current candidate: fail-closed analytical selectors
+## Current cohesive release candidate
 
-1. In website/dashboard_metrics.js choose only positive-change rows for top rise and negative-change rows for top fall. Missing or invalid prices and percentages are not valid observations.
-2. Region ranking excludes rows without a finite gap or positive price; actual numeric zero gap remains a valid equal-to-average value.
-3. website/app.js uses these selectors, preserves explicit empty states and prevents trends built from nonpositive prices.
-4. index.html loads dashboard_metrics.js before app.js. GitHub/GitLab CI test both JavaScript modules, all Node tests and Python contracts.
-5. Local 9/9 tests passed on the two exact metric files whose blob SHA was compared with candidate tree. Entire repository CI is pending until a branch push.
+- Curated publish-state pointer is mandatory for nonempty exported prices. No pointer gives empty arrays; invalid pointer fails before publishing.
+- Price SQL uses the active published observation date to avoid unreviewed later national values or historical province mixing.
+- Website checks snapshot schema, arrays, run status, reviewed label and calendar date. Invalid or missing provenance is withheld, not displayed.
+- scripts/check_public_snapshot.py is dependency-free and runs in both static Pages deployment pipelines.
+- Expanded Python, Node, and CI contract tests enforce the same boundary.
+- This checkpoint describes a candidate. Verify feature branches, merge commits, CI, and SHA parity live before saying RELEASED.
 
-## Safe continuation and blockers
+## Safe continuation
 
-- Review exact diff, create one GH PR, require green Python, Node, live source probe before merging.
-- Transfer only reviewed changes to a new GitLab feature branch, require successful MR pipeline, then merge and compare full tree hashes.
-- The owner must enable public Pages by selecting Everyone with access under GitLab Settings > General > Visibility, project features, permissions, then fetch the actual Pages URL from Deploy > Pages and verify anonymous access.
-- Optionally enable GitHub Pages with Source: GitHub Actions under repo Settings > Pages; do not introduce additional PATs or tokens.
-- No VPS, no GCP role, no secret, no new production snapshot or scheduled data refresh.
+1. Review current branch HEADs and the exact changed diff. User granted APPROVE PUSH and APPROVE MERGE for this run, contingent on green CI.
+2. Release one GitHub PR, verify quality tests + frontend tests + guarded PIHPS probe; merge only after success.
+3. Mirror exact GitHub file contents to one GitLab MR, verify pipeline, merge, and verify main Pages deployment.
+4. Compare all GitHub/GitLab file paths and blob SHA values; preserve separate ancestry.
+5. Owner must change GitLab Pages visibility to Everyone with access under Settings > General > Visibility, project features, permissions; retrieve the actual website URL from Deploy > Pages and verify anonymous access.
+6. No VPS, extra credentials, GCP activation, synthetic price data, or forced Git history rewrite.
 
-NEXT_ACTION: Finish CI-gated analytical semantics release on both platforms, then make Pages public via the owner setting and verify the deployed URL.
+NEXT_ACTION: Finish CI-gated public snapshot safeguards on both repositories and get the owner to make Pages public.
