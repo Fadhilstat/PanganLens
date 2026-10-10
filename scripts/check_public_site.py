@@ -105,7 +105,9 @@ def verify_public_site(base_url: str, fetcher=None) -> dict[str, object]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Verify anonymous Vercel PanganLens production access")
+    parser = argparse.ArgumentParser(
+        description="Verify anonymous Vercel PanganLens production access"
+    )
     parser.add_argument("--url", default=PUBLIC_SITE)
     parser.add_argument("--attempts", type=int, default=3)
     args = parser.parse_args(argv)
