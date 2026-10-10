@@ -67,3 +67,12 @@ correctly. Human-readable labels and sort keys are added in the semantic views,
 not by mutating the underlying facts.
 
 The dashboard must never connect directly to raw or staging datasets.
+
+
+## Public snapshot fail-closed gate
+
+The curated publish pointer, not the mere presence of rows in price marts, decides whether prices can leave the warehouse. No active publish pointer means an empty website snapshot. A pointer with a non-SUCCESS status, unreviewed freshness label, or invalid observation date stops export.
+
+National rows must not be newer than the pointer's active observation date. Province comparisons must refer to that same active observation date so the website cannot rank historical and current province observations together.
+
+The website performs a second provenance check before rendering price values. GitHub Pages and GitLab Pages also run a dependency-free static JSON validation before deployment. These checks do not replace the source freshness, mapping, and warehouse quality controls already required for first production activation.

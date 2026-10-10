@@ -44,6 +44,7 @@ deploy_portfolio_site:
   script:
     - test -s website/index.html
     - test -s website/data/dashboard.json
+    - python scripts/check_public_snapshot.py website/data/dashboard.json
   pages:
     publish: website
   rules:

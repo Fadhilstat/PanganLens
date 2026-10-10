@@ -45,7 +45,29 @@
       .slice(0, count);
   }
 
-  const metrics = { finiteNumber, isValidPrice, selectMovers, selectRegions };
+
+  function validIsoDay(day) {
+    if (typeof day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return false;
+    const date = new Date(day + "T00:00:00Z");
+    return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === day;
+  }
+
+  function snapshotReadiness(payload) {
+    if (!payload || typeof payload !== "object" || Array.isArray(payload) ||
+        payload.schema_version !== 1 ||
+        !Array.isArray(payload.national_prices) ||
+        !Array.isArray(payload.province_prices)) return "invalid";
+
+    const containsPrices = payload.national_prices.length > 0 || payload.province_prices.length > 0;
+    const published = payload.publish_state;
+    if (published == null) return containsPrices ? "blocked" : "empty";
+    const valid = typeof published === "object" && !Array.isArray(published) &&
+      published.active_run_status === "SUCCESS" &&
+      validIsoDay(published.active_observation_date) &&
+      ["Terkini", "Perlu diperiksa", "Data lama"].includes(published.freshness_label);
+    return valid ? "ready" : "blocked";
+  }
+  const metrics = { finiteNumber, isValidPrice, selectMovers, selectRegions, snapshotReadiness };
   root.PanganLensMetrics = metrics;
   if (typeof module !== "undefined" && module.exports) module.exports = metrics;
 })(typeof globalThis !== "undefined" ? globalThis : this);

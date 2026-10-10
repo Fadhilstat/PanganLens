@@ -78,3 +78,10 @@ The production UI's movement summary must not label the least-negative price cha
 For the regional comparison, a missing province-versus-average gap means the comparison is unavailable, not that the region exactly matches its average. A true numeric zero may appear as "setara rata-rata". Rows must also have a positive numeric price and a named province before ranking.
 
 The metric selectors are pure functions with deterministic ordering and tests. They do not fabricate or backfill price data. This boundary matters especially when a previously empty dashboard begins receiving real curated snapshots.
+
+
+## End-to-end publication integrity
+
+The exporter checks for an active `SUCCESS` publish state before querying prices, and uses the active observation date to bound national and provincial data. An empty or invalid publish pointer cannot be silently interpreted as permission to display market values. The JSON writer refuses nonempty prices without valid metadata.
+
+A standalone Python script validates the deploy artifact, and the browser repeats the schema, date, status, and freshness checks. The checked-in empty JSON remains legal, allowing a reliable portfolio preview without fake market observations. The rules are covered by pytest and Node tests; end-to-end GCP ingestion remains a separate, unverified activation step.

@@ -18,12 +18,19 @@ async function loadDashboard() {
 
 function render() {
   const data = state.data;
-  const national = Array.isArray(data.national_prices) ? data.national_prices : [];
-  const provinces = Array.isArray(data.province_prices) ? data.province_prices : [];
-  renderPublishState(data.publish_state);
+  const readiness = PanganLensMetrics.snapshotReadiness(data);
+  const national = readiness === "ready" ? data.national_prices : [];
+  const provinces = readiness === "ready" ? data.province_prices : [];
 
-  if (!national.length) {
-    showNotice("Data produksi belum dipublikasikan ke website. Dashboard akan terisi setelah snapshot BigQuery pertama lolos quality gate.");
+  hideNotice();
+  if (readiness === "invalid" || readiness === "blocked") {
+    setFreshness("Tidak dapat diverifikasi", null, "warning");
+    showNotice("Snapshot harga ditahan karena versi, status publikasi, atau tanggal observasinya tidak valid. Angka yang belum disetujui tidak ditampilkan.");
+  } else {
+    renderPublishState(readiness === "ready" ? data.publish_state : null);
+    if (!national.length) {
+      showNotice("Data produksi belum dipublikasikan ke website. Dashboard akan terisi setelah snapshot BigQuery pertama lolos quality gate.");
+    }
   }
 
   const commodities = [...new Map(national.map(row => [row.commodity_id, row.commodity_name])).entries()];
@@ -74,6 +81,7 @@ function renderCommoditySelect(commodities) {
   select.innerHTML = "";
   if (!commodities.length) {
     state.selectedCommodity = null;
+    clearCommodityDetail();
     const option = document.createElement("option");
     option.textContent = "Belum ada data";
     select.appendChild(option);
@@ -94,6 +102,17 @@ function renderCommoditySelect(commodities) {
     renderCommodityDetail();
   });
   renderCommodityDetail();
+}
+
+function clearCommodityDetail() {
+  document.getElementById("latest-price").textContent = "-";
+  document.getElementById("latest-price-meta").textContent = "Pilih komoditas untuk melihat harga.";
+  document.getElementById("daily-change").textContent = "-";
+  document.getElementById("daily-change").style.color = "var(--text)";
+  document.getElementById("trend-chart").innerHTML = "";
+  document.getElementById("trend-empty").classList.remove("hidden");
+  document.getElementById("region-list").innerHTML = "";
+  document.getElementById("region-empty").classList.remove("hidden");
 }
 
 function renderCommodityDetail() {
@@ -212,6 +231,12 @@ function formatPrice(value) {
 
 function finite(value) {
   return value !== null && value !== undefined && value !== "" && Number.isFinite(Number(value));
+}
+
+function hideNotice() {
+  const el = document.getElementById("data-notice");
+  el.textContent = "";
+  el.classList.add("hidden");
 }
 
 function showNotice(message) {

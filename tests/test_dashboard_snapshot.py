@@ -7,6 +7,7 @@ import pytest
 from panganlens.dashboard_snapshot import (
     BigQueryDashboardSnapshotExporter,
     DashboardSnapshot,
+    dashboard_snapshot_queries,
     write_snapshot,
 )
 
@@ -40,7 +41,7 @@ class FakeClient:
 def test_exporter_reads_only_curated_dashboard_views():
     client = FakeClient(
         [
-            [FakeRow({"active_observation_date": date(2026, 8, 18), "freshness_label": "Terkini"})],
+            [FakeRow({"active_observation_date": date(2026, 8, 18), "freshness_label": "Terkini", "active_run_status": "SUCCESS"})],
             [FakeRow({"commodity_id": "beras", "price_idr": Decimal("62650")})],
             [FakeRow({"province_id": "jabar", "price_idr": Decimal("63000")})],
         ]
@@ -92,3 +93,69 @@ def test_exporter_rejects_invalid_project_and_cost_limit():
             client=FakeClient([]),
             maximum_bytes_billed=0,
         )
+
+
+def test_exporter_with_no_active_publish_state_skips_all_price_queries():
+    client = FakeClient([[]])
+    snapshot = BigQueryDashboardSnapshotExporter("panganlens-demo", client=client).export()
+
+    assert snapshot.publish_state is None
+    assert snapshot.national_prices == []
+    assert snapshot.province_prices == []
+    assert len(client.calls) == 1
+
+
+@pytest.mark.parametrize(
+    "state",
+    [
+        {"active_observation_date": "2026-08-18", "freshness_label": "Terkini"},
+        {"active_observation_date": "2026-08-18", "freshness_label": "Terkini",
+         "active_run_status": "FAILED"},
+        {"active_observation_date": "2026-02-30", "freshness_label": "Terkini",
+         "active_run_status": "SUCCESS"},
+        {"active_observation_date": "2026-08-18", "freshness_label": "unknown",
+         "active_run_status": "SUCCESS"},
+    ],
+)
+def test_exporter_rejects_unapproved_publish_state_without_querying_prices(state):
+    client = FakeClient([[FakeRow(state)]])
+    with pytest.raises(RuntimeError, match="not eligible"):
+        BigQueryDashboardSnapshotExporter("panganlens-demo", client=client).export()
+    assert len(client.calls) == 1
+
+
+def test_write_snapshot_rejects_prices_without_valid_publish_state(tmp_path):
+    path = tmp_path / "dashboard.json"
+    snapshot = DashboardSnapshot(
+        generated_at="2026-08-18T12:00:00+00:00",
+        publish_state=None,
+        national_prices=[{"price_idr": "20000"}],
+        province_prices=[],
+    )
+    with pytest.raises(ValueError, match="without an active"):
+        write_snapshot(snapshot, path)
+    assert not path.exists()
+
+
+def test_write_snapshot_rejects_invalid_publish_state(tmp_path):
+    path = tmp_path / "dashboard.json"
+    snapshot = DashboardSnapshot(
+        generated_at="2026-08-18T12:00:00+00:00",
+        publish_state={"active_run_status": "FAILED", "active_observation_date": "2026-08-18"},
+        national_prices=[],
+        province_prices=[],
+    )
+    with pytest.raises(ValueError, match="invalid"):
+        write_snapshot(snapshot, path)
+    assert not path.exists()
+
+
+def test_dashboard_queries_bound_data_to_active_published_date():
+    queries = dashboard_snapshot_queries("panganlens-demo")
+    for name in ("national_prices", "province_prices"):
+        sql = queries[name]
+        assert "active_observation_date" in sql
+        assert "vw_looker_publish_state" in sql
+        assert "active_run_status = 'SUCCESS'" in sql
+    assert "WHERE observation_date <=" in queries["national_prices"]
+    assert "WHERE observation_date =" in queries["province_prices"]

@@ -64,3 +64,50 @@ test('does not mutate dashboard rows', () => {
   selectRegions(rows);
   assert.deepEqual(rows.map(x => x.province_name), ['A', 'B']);
 });
+
+
+test('empty snapshot is accepted only when it contains no published prices', () => {
+  const { snapshotReadiness } = require('../website/dashboard_metrics.js');
+  assert.equal(snapshotReadiness({
+    schema_version: 1, generated_at: null, publish_state: null,
+    national_prices: [], province_prices: []
+  }), 'empty');
+  assert.equal(snapshotReadiness({
+    schema_version: 1, publish_state: null,
+    national_prices: [{ price_idr: '25000' }], province_prices: []
+  }), 'blocked');
+});
+
+test('unsupported, missing or malformed schema cannot be rendered', () => {
+  const { snapshotReadiness } = require('../website/dashboard_metrics.js');
+  for (const payload of [null, [], 42, {}, {
+    schema_version: 2, publish_state: null, national_prices: [], province_prices: []
+  }, {
+    schema_version: 1, publish_state: null, national_prices: null, province_prices: []
+  }]) assert.equal(snapshotReadiness(payload), 'invalid');
+});
+
+test('publication state must be a successful run and a valid calendar date', () => {
+  const { snapshotReadiness } = require('../website/dashboard_metrics.js');
+  const base = {
+    schema_version: 1, national_prices: [{ price_idr: '30000' }], province_prices: []
+  };
+  const good = { active_run_status: 'SUCCESS',
+    active_observation_date: '2026-10-09', freshness_label: 'Terkini' };
+  assert.equal(snapshotReadiness({ ...base, publish_state: good }), 'ready');
+  for (const value of [
+    { ...good, active_run_status: 'FAILED' },
+    { ...good, active_observation_date: '2026-02-30' },
+    { ...good, active_observation_date: null },
+    { ...good, freshness_label: 'unspecified' },
+    {}
+  ]) assert.equal(snapshotReadiness({ ...base, publish_state: value }), 'blocked');
+});
+
+test('reviewed stale publication is still displayable with its warning label', () => {
+  const { snapshotReadiness } = require('../website/dashboard_metrics.js');
+  const data = { schema_version: 1, national_prices: [], province_prices: [],
+    publish_state: { active_run_status: 'SUCCESS',
+      active_observation_date: '2026-10-08', freshness_label: 'Data lama' } };
+  assert.equal(snapshotReadiness(data), 'ready');
+});

@@ -119,6 +119,18 @@ A percentage is only useful when its sign, denominator and missing-data behavior
 
 The business logic is isolated in [website/dashboard_metrics.js](website/dashboard_metrics.js), with 9 sign, missingness, input and ranking tests in [tests/dashboard_metrics.test.cjs](tests/dashboard_metrics.test.cjs). The interactive calculator is intentionally separate from the publication snapshot and continues to use only visitor-provided input.
 
+## Fail-closed snapshot publication
+
+A source request or a BigQuery query succeeding does not automatically approve a public price. The exporter now checks the curated `vw_looker_publish_state` pointer first. With no active publish state, it exports **zero prices**. A state must reference a `SUCCESS` run, a valid observation date, and one of the reviewed freshness labels before price queries are allowed.
+
+National prices are bounded by the active published observation date; province comparisons use that exact date. Before either Pages deployment, `scripts/check_public_snapshot.py` rejects malformed JSON, unsupported schema versions, and any priced payload lacking a successful publication pointer. The browser independently refuses to display data without valid provenance. The checked-in preview remains empty, not synthetic.
+
+Run the dependency-free release check locally:
+
+~~~bash
+python scripts/check_public_snapshot.py website/data/dashboard.json
+~~~
+
 ## Evidence and honest limitations
 
 **Implemented:** guarded source interactions, numeric parsing, duplicate handling, review gates, BigQuery schemas, snapshot exporter, safety tests, and a public-site UI. CI checks are configured in GitHub and GitLab.

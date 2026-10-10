@@ -68,3 +68,16 @@ def test_metrics_guard_does_not_count_missing_region_gaps_as_zero():
     assert "price_gap_vs_province_average_pct || 0" not in app
     html = (WEBSITE / "index.html").read_text(encoding="utf-8")
     assert 'src="dashboard_metrics.js"' in html
+
+
+def test_static_site_publishing_has_fail_closed_snapshot_validation():
+    project = WEBSITE.parent
+    workflow = (project / ".github" / "workflows" / "dashboard_pages.yml").read_text(
+        encoding="utf-8"
+    )
+    gitlab_ci = (project / ".gitlab-ci.yml").read_text(encoding="utf-8")
+    command = "python scripts/check_public_snapshot.py website/data/dashboard.json"
+    assert command in workflow
+    assert workflow.index("Validate public snapshot") < workflow.index("Configure Pages")
+    assert command in gitlab_ci
+    assert gitlab_ci.index(command) > gitlab_ci.index("deploy_portfolio_site:")
