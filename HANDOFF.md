@@ -38,3 +38,11 @@ PanganLens is a portfolio of public food-price analytics, quality-gated data eng
 5. For any further code changes, re-fetch HEAD and CI, make reviewed PR/MR changes only, and retain exact content parity.
 
 NEXT_ACTION: Fix GitLab Pages access control so the anonymous Pages check changes from HTTP 403 to PASS.
+
+
+## Editorial website migration
+- New identity: green editorial food-data portfolio design with CSS-based produce artwork, accessible calculator and snapshot safeguards preserved.
+- Proposed static Vercel production host: https://panganlens-portfolio.vercel.app/; production success must be verified from the deployment ID and anonymous HTTP result.
+- Existing Vercel panganlens-indonesia project belongs to another repository. Do not overwrite it.
+- GitHub repository integration for this specific repository was not installed when first attempted; owner must authorize it to enable automatic deployments.
+- No runtime backend, cloud credentials or synthetic data are added.

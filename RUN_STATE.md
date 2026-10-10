@@ -40,3 +40,14 @@ LATER: Activate real PIHPS data under GitHub Issue #48 with production quality g
 OPTIONAL: Add screenshot/a11y regression testing for 360 px mobile, 768 px tablet and desktop.
 
 NEXT_ACTION: Change Pages access from private to Everyone with access; then rerun the anonymous smoke job and only declare the website publicly ready if it passes.
+
+
+## New milestone: Editorial redesign and Vercel migration
+- Reference: Nixtio Dribbble Pet Shop UI composition; inspired by light mint surfaces, playful produce forms and editorial hierarchy, without copying assets or product UI.
+- Website remains plain static HTML/CSS/JS and uses CSS produce artwork, not invented market prices.
+- Vercel target: https://panganlens-portfolio.vercel.app/. Deployment and anonymous HTTP verification must be recorded separately, never implied by code merge.
+- Existing Vercel panganlens-indonesia is linked to a different GitHub project and must not be overwritten.
+- Vercel GitHub integration was unavailable for this repository at the first attempt. Automatic Git deployments require owner action.
+- Previous GitLab Pages access blocker remains independently documented.
+
+NEXT_ACTION: Check green GitHub/GitLab CI for editorial redesign, deploy static site to Vercel, verify HTTP and browser behavior.

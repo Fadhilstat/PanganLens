@@ -4,55 +4,64 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="PanganLens Indonesia: portfolio data engineering dan analitik harga pangan dengan kalkulator interaktif, quality gate, dan metodologi transparan.">
-  <meta name="theme-color" content="#356859">
+  <meta name="theme-color" content="#e5f4dd">
   <meta name="robots" content="index, follow">
-  <link rel="canonical" href="https://panganlens-679cd2.gitlab.io/">
+  <link rel="canonical" href="https://panganlens-portfolio.vercel.app/">
   <meta property="og:type" content="website">
   <meta property="og:locale" content="id_ID">
   <meta property="og:title" content="PanganLens Indonesia | Studi kasus analitik harga pangan">
   <meta property="og:description" content="Lihat arsitektur kualitas data dan coba sendiri logika perbandingan harga. Preview portfolio, bukan harga pangan live.">
-  <meta property="og:url" content="https://panganlens-679cd2.gitlab.io/">
+  <meta property="og:url" content="https://panganlens-portfolio.vercel.app/">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="PanganLens Indonesia | Studi kasus analitik harga pangan">
   <meta name="twitter:description" content="Portfolio data engineering dengan kalkulator harga interaktif dan publikasi data yang diaudit.">
   <title>PanganLens Indonesia | Portfolio Analitik Harga Pangan</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body class="dashboard-preview">
+<body class="dashboard-preview editorial-site">
   <a class="skip-link" href="#main-content">Lewati ke konten</a>
   <header class="site-header">
     <div>
-      <a class="brand" href="#ringkasan">PanganLens Indonesia</a>
-      <p class="brand-note">Harga pangan, dibuat lebih mudah dibaca.</p>
+      <a class="brand" href="#ringkasan"><span class="brand-symbol" aria-hidden="true">✳</span> panganlens<span class="brand-period">.</span></a>
+      <p class="brand-note">A data story from Indonesia</p>
     </div>
     <nav aria-label="Navigasi utama">
       <a href="#ringkasan">Ringkasan</a>
       <a href="#komoditas" data-dashboard-link>Komoditas</a>
       <a href="#wilayah" data-dashboard-link>Wilayah</a>
-      <a href="#simulasi">Coba rumus</a>
+      <a href="#simulasi">Kalkulator</a>
       <a href="#studi-kasus">Studi kasus</a>
-      <a href="#metodologi">Tentang data</a>
+      <a href="#metodologi">Metodologi</a>
     </nav>
   </header>
 
   <main id="main-content">
     <section class="hero" id="ringkasan">
       <div>
-        <p class="eyebrow">STUDI KASUS DATA PUBLIK</p>
-        <h1>Data harga pangan perlu dipercaya sebelum dibandingkan.</h1>
-        <p class="hero-copy">PanganLens menunjukkan bagaimana data harga diperiksa, dimodelkan, dan disiapkan untuk analisis. Harga PIHPS belum dipublikasikan, tetapi kamu bisa mencoba cara menghitung perubahan harga dengan angkamu sendiri.</p>
+        <p class="eyebrow">INDEPENDENT DATA LAB <span class="eyebrow-line" aria-hidden="true"></span> INDONESIA</p>
+        <h1>Baca harga pangan dengan <em>lebih jernih.</em></h1>
+        <p class="hero-copy">Di balik setiap angka ada cerita. Kenali cara data harga pangan diperiksa, lalu coba analisis sederhana dengan angka pilihanmu. Harga PIHPS belum dipublikasikan.</p>
         <div class="hero-links">
-          <a class="hero-link-primary" href="#simulasi">Coba kalkulator harga</a>
-          <a class="hero-link-secondary" href="#studi-kasus">Baca studi kasus</a>
+          <a class="hero-link-primary" href="#simulasi">Coba kalkulator harga <span aria-hidden="true">↗</span></a>
+          <a class="hero-link-secondary" href="#studi-kasus">Baca studi kasus <span aria-hidden="true">↗</span></a>
         </div>
       </div>
       <aside class="freshness-card" aria-live="polite">
-        <span class="status-dot" id="status-dot"></span>
+        <div class="produce-art" aria-hidden="true">
+          <div class="produce-disc"></div>
+          <span class="produce-leaf leaf-one"></span><span class="produce-leaf leaf-two"></span>
+          <span class="produce-leaf leaf-three"></span>
+          <span class="produce-tomato"></span><span class="produce-tomato tomato-back"></span>
+          <span class="produce-pepper"></span>
+          <span class="produce-mark">01 / INSIGHT</span>
+          <span class="produce-caption">Food data, thoughtfully explored.</span>
+        </div>
+        <div class="freshness-meta"><span class="status-dot" id="status-dot"></span>
         <div>
           <p class="card-label">Status data</p>
           <strong id="freshness-label">Memuat data</strong>
           <p id="observation-date">Tanggal data belum tersedia</p>
-        </div>
+        </div></div>
       </aside>
     </section>
 
@@ -122,8 +131,8 @@
 
     <section class="calculator-lab" id="simulasi" aria-labelledby="lab-title">
       <div class="lab-context">
-        <p class="eyebrow">LATIHAN ANALISIS</p>
-        <h2 id="lab-title">Coba rumusnya dengan angkamu.</h2>
+        <p class="eyebrow">THE PRICE PLAYGROUND / 02</p>
+        <h2 id="lab-title">Angkamu. <em>Analisisnya.</em></h2>
         <p>PanganLens belum menayangkan harga produksi. Kamu tetap bisa mencoba dua rumus yang dipakai untuk memahami perubahan harga. Semua angka di bawah berasal dari inputmu sendiri, bukan data PIHPS.</p>
         <div class="formula-notes">
           <p><strong>Perubahan harga</strong> = (harga terbaru - harga sebelumnya) / harga sebelumnya.</p>
@@ -167,7 +176,7 @@
 
     <section class="case-study" id="studi-kasus" aria-labelledby="case-title">
       <div>
-        <p class="eyebrow">STUDI KASUS PORTFOLIO</p>
+        <p class="eyebrow">BEHIND THE DATA / 03</p>
         <h2 id="case-title">Dari harga mentah ke keputusan yang bisa diaudit.</h2>
         <p>PanganLens adalah proyek data engineering dan analitik harga pangan Indonesia. Desain pipeline menahan data yang tidak valid sebelum masuk ke tampilan publik.</p>
       </div>
@@ -180,7 +189,7 @@
     </section>
 
     <section class="methodology" id="metodologi">
-      <div><p class="eyebrow">TENTANG DATA</p><h2>Angka yang tampil harus bisa ditelusuri.</h2></div>
+      <div><p class="eyebrow">OUR METHOD / 04</p><h2>Angka yang tampil harus bisa ditelusuri.</h2></div>
       <div class="method-grid">
         <article><h3>Sumber</h3><p>PIHPS Bank Indonesia melalui interface publik yang dipantau health check-nya. PanganLens tidak menyebut interface website tersebut sebagai API resmi.</p></article>
         <article><h3>Kualitas</h3><p>Dashboard hanya membaca data curated yang lolos pemeriksaan duplikasi, mapping, referential integrity, nilai harga, provenance, dan publish state.</p></article>

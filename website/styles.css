@@ -187,3 +187,95 @@ main section { scroll-margin-top: 24px; }
 .dashboard-preview #wilayah {
   display: none;
 }
+
+
+/* PanganLens editorial market design. No market-price photos or unverified values. */
+.editorial-site { --bg:#f7f8f0; --surface:#fffefa; --text:#17372c; --muted:#5f766b;
+  --line:#d9e7d9; --green:#194c39; --green-soft:#e5f4dd; --blue:#45707b;
+  --shadow:0 20px 55px rgba(25,76,57,.07); font-family:"Trebuchet MS", "Segoe UI", system-ui, sans-serif; }
+.editorial-site .site-header { max-width:1360px; padding:26px 36px; border-bottom:1px solid var(--line); }
+.editorial-site .brand { font-size:27px; font-weight:900; letter-spacing:-.07em; }
+.editorial-site .brand-symbol { display:inline-grid; place-items:center; width:36px; height:36px; border-radius:50%;
+  background:#214f3b; color:#f7f8f0; font-size:28px; margin-right:5px; vertical-align:middle; }
+.editorial-site .brand-period { color:#83ab63; }
+.editorial-site .brand-note { padding-left:47px; font-size:10px; letter-spacing:.13em; text-transform:uppercase; }
+.editorial-site nav { align-items:center; gap:9px; }
+.editorial-site nav a { font-weight:650; color:#385a49; padding:11px 15px; border-radius:999px; transition:background .2s; }
+.editorial-site nav a:hover { background:var(--green-soft); color:var(--green); }
+.editorial-site nav a[href="#simulasi"] { background:var(--green); color:#fff; }
+.editorial-site main { max-width:1360px; padding:18px 36px 70px; }
+.editorial-site .hero { padding:36px 0 30px; gap:16px; align-items:stretch; grid-template-columns:minmax(0,1fr) minmax(360px,.9fr); }
+.editorial-site .hero > div:first-child { background:#e4f2d9; border-radius:30px; padding:clamp(32px,5vw,76px); display:flex; flex-direction:column; align-items:start; }
+.editorial-site .eyebrow { color:#365f43; letter-spacing:.17em; font-size:11px; }
+.eyebrow-line { display:inline-block; vertical-align:middle; width:32px; border-top:1px solid #66856b; margin:0 10px; }
+.editorial-site h1 { font-family:Georgia,"Times New Roman",serif; font-weight:600; max-width:800px; font-size:clamp(48px,6.2vw,96px);
+  line-height:1.02; letter-spacing:-.07em; margin:26px 0 0; }
+.editorial-site h1 em, .editorial-site h2 em { font-weight:400; color:#5b946b; }
+.editorial-site .hero-copy { font-size:16px; max-width:600px; line-height:1.8; margin:26px 0; color:#4c6957; }
+.editorial-site .hero-links { margin-top:auto; padding-top:14px; gap:10px; }
+.editorial-site .hero-links a { border-radius:999px; min-height:48px; gap:14px; padding:11px 22px; }
+.editorial-site .hero-link-primary { background:#214f3b; }
+.editorial-site .hero-link-secondary { color:#214f3b; border-color:#9fbba3; text-decoration:none; }
+.editorial-site .freshness-card { position:relative; min-height:570px; overflow:hidden; display:flex; flex-direction:column; padding:0; gap:0;
+  border:0; border-radius:30px; background:#c8e2bd; box-shadow:none; }
+.produce-art { position:relative; overflow:hidden; flex:1; min-height:450px; isolation:isolate; background:#c5dfb6; }
+.produce-disc { position:absolute; width:560px; height:560px; left:50%; top:47%; transform:translate(-50%,-50%);
+ border-radius:50%; background:#daedc9; border:1px solid rgba(255,255,255,.4); }
+.produce-tomato { position:absolute; width:220px; height:210px; top:26%; left:17%; border-radius:49% 51% 47% 55%;
+ background:radial-gradient(circle at 32% 25%,#f89a69,#ef684d 48%,#bd4031 100%); transform:rotate(-22deg);
+ box-shadow:inset -19px -14px 28px rgba(99,31,15,.16), 13px 25px 35px rgba(64,80,40,.17); }
+.produce-tomato:after { content:""; position:absolute; background:#386f3f; clip-path:polygon(50% 0,60% 42%,100% 25%,65% 58%,90% 100%,49% 68%,13% 96%,34% 55%,0 23%,41% 40%);
+ width:100px; height:85px; top:-30px; left:60px; transform:rotate(20deg); }
+.tomato-back { width:170px; height:160px; left:46%; top:52%; transform:rotate(15deg); filter:saturate(.9); }
+.tomato-back:after { width:70px; height:65px; left:45px; top:-26px; }
+.produce-pepper { position:absolute; width:90px; height:265px; top:16%; right:14%; background:linear-gradient(90deg,#a54436,#e57944 42%,#ffbd69);
+ border-radius:65% 35% 48% 52% / 17% 20% 80% 76%; transform:rotate(33deg); box-shadow:12px 15px 28px rgba(47,81,33,.15); }
+.produce-pepper:before { content:""; width:16px; height:52px; border-radius:60%; background:#457e43; position:absolute; top:-35px; left:34px; transform:rotate(-35deg); }
+.produce-leaf { position:absolute; display:block; width:180px; height:95px; border-radius:3% 98% 5% 98%; background:#467b43;
+ box-shadow:10px 15px 25px rgba(34,85,38,.12); }
+.leaf-one { top:9%; left:6%; transform:rotate(-30deg); }
+.leaf-two { bottom:13%; left:4%; transform:rotate(55deg); background:#669b55; }
+.leaf-three { right:-5%; bottom:18%; transform:rotate(-30deg); background:#3c7749; }
+.produce-mark { position:absolute; top:25px; right:28px; font-size:11px; font-weight:800; letter-spacing:.2em; color:#285339; }
+.produce-caption { position:absolute; bottom:28px; left:30px; font-family:Georgia,serif; font-style:italic; font-size:19px; color:#1c543f; }
+.editorial-site .freshness-meta { display:flex; padding:17px 25px; background:#eef5e8; align-items:flex-start; gap:12px; border-top:1px solid #bdd2b6; }
+.editorial-site .freshness-meta .status-dot { margin-top:6px; }
+.editorial-site .freshness-meta strong { font-size:14px; }
+.editorial-site .section-intro { margin-top:36px; }
+.editorial-site .kpi-card, .editorial-site .panel { border-radius:22px; }
+.editorial-site .calculator-lab { border:0; border-radius:28px; background:#edf0e4; margin-top:34px; padding:clamp(25px,5vw,55px); }
+.editorial-site h2 { font-family:Georgia,"Times New Roman",serif; font-weight:500; font-size:clamp(32px,3.8vw,53px); line-height:1.1; }
+.editorial-site .calculator-form { border-radius:22px; border-color:#d5dfd0; box-shadow:var(--shadow); }
+.editorial-site .calculator-actions button { border-radius:999px; }
+.editorial-site .case-study { border-radius:28px; }
+.editorial-site .methodology { border-radius:28px; }
+.editorial-site footer { max-width:1360px; padding-left:36px; padding-right:36px; }
+@media(max-width:1050px) {
+ .editorial-site .hero { grid-template-columns:1fr; }
+ .editorial-site .freshness-card { min-height:390px; }
+ .produce-art { min-height:310px; }
+ .produce-disc { width:440px; height:440px; }
+ .produce-tomato { width:150px; height:150px; }
+ .tomato-back { width:115px; height:115px; }
+ .produce-pepper { width:70px; height:190px; }
+}
+@media(max-width:620px) {
+ .editorial-site main { padding:12px 16px 44px; }
+ .editorial-site .site-header { padding:18px 16px; }
+ .editorial-site .brand { font-size:24px; }
+ .editorial-site .hero > div:first-child { padding:30px 23px; border-radius:22px; }
+ .editorial-site h1 { font-size:clamp(44px,11vw,64px); }
+ .editorial-site .hero-copy { font-size:14px; }
+ .editorial-site .freshness-card { min-height:330px; border-radius:22px; }
+ .produce-art { min-height:255px; }
+ .produce-disc { width:310px; height:310px; }
+ .produce-tomato { width:110px; height:110px; }
+ .tomato-back { width:90px; height:90px; }
+ .produce-pepper { width:46px; height:145px; }
+ .produce-leaf { width:110px; height:64px; }
+ .produce-caption { font-size:14px; }
+ .editorial-site .calculator-lab { padding:24px 16px; border-radius:22px; }
+ .editorial-site .calculator-form { padding:20px 16px; }
+ .editorial-site footer { padding-left:16px; padding-right:16px; }
+}
+@media(prefers-reduced-motion:reduce) { .editorial-site nav a { transition:none; } }
