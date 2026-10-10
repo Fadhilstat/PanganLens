@@ -1,6 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { finiteNumber, isValidPrice, selectMovers, selectRegions } = require('../website/dashboard_metrics.js');
+const { finiteNumber, isValidPrice, selectMovers, selectRegions, commodityKey,
+  isDisplayableNational, hasDashboardContent } = require('../website/dashboard_metrics.js');
 
 const national = (commodity_name, daily_change_pct, price_idr = '20000') =>
   ({ commodity_name, daily_change_pct, price_idr });
@@ -110,4 +111,33 @@ test('reviewed stale publication is still displayable with its warning label', (
     publish_state: { active_run_status: 'SUCCESS',
       active_observation_date: '2026-10-08', freshness_label: 'Data lama' } };
   assert.equal(snapshotReadiness(data), 'ready');
+});
+
+
+test('commodity selection matches numeric warehouse IDs and string DOM values', () => {
+  assert.equal(commodityKey(12), '12');
+  assert.equal(commodityKey('12'), '12');
+  assert.equal(commodityKey(' 12 '), '12');
+  for (const value of [null, undefined, '', ' ', 12.5, NaN, Infinity, {}]) {
+    assert.equal(commodityKey(value), null);
+  }
+});
+
+test('preview mode stays until a verified, usable national price exists', () => {
+  const publication = { active_run_status: 'SUCCESS',
+    active_observation_date: '2026-10-09', freshness_label: 'Terkini' };
+  const row = { commodity_id: 12, commodity_name: 'Cabai', price_idr: '35000' };
+  const payload = { schema_version: 1, publish_state: publication,
+    national_prices: [row], province_prices: [] };
+  assert.equal(isDisplayableNational(row), true);
+  assert.equal(hasDashboardContent(payload), true);
+  assert.equal(hasDashboardContent({ ...payload, publish_state: null }), false);
+  assert.equal(hasDashboardContent({ ...payload, national_prices: [] }), false);
+  assert.equal(hasDashboardContent({ ...payload, national_prices: [],
+    province_prices: [{ commodity_id: 12, price_idr: '35000' }] }), false);
+  for (const invalid of [{ ...row, price_idr: null }, { ...row, price_idr: 0 },
+    { ...row, commodity_id: null }, { ...row, commodity_name: ' ' }]) {
+    assert.equal(isDisplayableNational(invalid), false);
+    assert.equal(hasDashboardContent({ ...payload, national_prices: [invalid] }), false);
+  }
 });

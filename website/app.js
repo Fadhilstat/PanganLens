@@ -13,27 +13,34 @@ async function loadDashboard() {
   } catch (error) {
     showNotice("Snapshot dashboard belum dapat dimuat. Data tidak ditampilkan agar tidak menyesatkan.");
     setFreshness("Tidak tersedia", null, "warning");
+    document.body.classList.add("dashboard-preview");
   }
 }
 
 function render() {
   const data = state.data;
   const readiness = PanganLensMetrics.snapshotReadiness(data);
-  const national = readiness === "ready" ? data.national_prices : [];
+  const national = readiness === "ready"
+    ? data.national_prices.filter(PanganLensMetrics.isDisplayableNational) : [];
   const provinces = readiness === "ready" ? data.province_prices : [];
+  const dashboardAvailable = PanganLensMetrics.hasDashboardContent(data);
+  document.body.classList.toggle("dashboard-preview", !dashboardAvailable);
 
   hideNotice();
   if (readiness === "invalid" || readiness === "blocked") {
     setFreshness("Tidak dapat diverifikasi", null, "warning");
     showNotice("Snapshot harga ditahan karena versi, status publikasi, atau tanggal observasinya tidak valid. Angka yang belum disetujui tidak ditampilkan.");
+  } else if (readiness === "ready" && !dashboardAvailable) {
+    setFreshness("Harga belum tersedia", data.publish_state.active_observation_date, "warning");
+    showNotice("Snapshot telah disetujui, tetapi belum berisi harga nasional valid yang bisa dibandingkan. Coba kalkulator dengan angkamu sendiri.");
   } else {
     renderPublishState(readiness === "ready" ? data.publish_state : null);
     if (!national.length) {
-      showNotice("Data produksi belum dipublikasikan ke website. Dashboard akan terisi setelah snapshot BigQuery pertama lolos quality gate.");
+      showNotice("Data produksi belum dipublikasikan. Gunakan kalkulator dengan angkamu sendiri; data PIHPS tidak direka.");
     }
   }
 
-  const commodities = [...new Map(national.map(row => [row.commodity_id, row.commodity_name])).entries()];
+  const commodities = [...new Map(national.map(row => [PanganLensMetrics.commodityKey(row.commodity_id), row.commodity_name])).entries()];
   document.getElementById("commodity-count").textContent = commodities.length ? String(commodities.length) : "-";
   document.getElementById("province-count").textContent = national.length && provinces.length ? String(new Set(provinces.map(row => row.province_id)).size) : "-";
   renderMovers(national);
@@ -95,12 +102,12 @@ function renderCommoditySelect(commodities) {
     select.appendChild(option);
   }
   select.disabled = false;
-  state.selectedCommodity = state.selectedCommodity || commodities[0][0];
+  if (!commodities.some(([id]) => id === state.selectedCommodity)) state.selectedCommodity = commodities[0][0];
   select.value = state.selectedCommodity;
-  select.addEventListener("change", event => {
+  select.onchange = event => {
     state.selectedCommodity = event.target.value;
     renderCommodityDetail();
-  });
+  };
   renderCommodityDetail();
 }
 
@@ -116,8 +123,11 @@ function clearCommodityDetail() {
 }
 
 function renderCommodityDetail() {
-  const national = state.data.national_prices.filter(row => row.commodity_id === state.selectedCommodity);
-  const provinces = state.data.province_prices.filter(row => row.commodity_id === state.selectedCommodity);
+  const national = state.data.national_prices.filter(row =>
+    PanganLensMetrics.commodityKey(row.commodity_id) === state.selectedCommodity &&
+    PanganLensMetrics.isDisplayableNational(row));
+  const provinces = state.data.province_prices.filter(row =>
+    PanganLensMetrics.commodityKey(row.commodity_id) === state.selectedCommodity);
   const row = national[0];
   if (!row) return;
 

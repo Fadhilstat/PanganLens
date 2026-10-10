@@ -17,6 +17,20 @@
     return price !== null && price > 0;
   }
 
+  // Commodity identifiers may arrive as JSON integers or strings.
+  // Normalize both to one DOM select key without guessing missing IDs.
+  function commodityKey(value) {
+    if (typeof value === "number") return Number.isSafeInteger(value) ? String(value) : null;
+    if (typeof value === "string") return value.trim() || null;
+    return null;
+  }
+
+  function isDisplayableNational(row) {
+    return Boolean(row && commodityKey(row.commodity_id) !== null &&
+      typeof row.commodity_name === "string" && row.commodity_name.trim() &&
+      isValidPrice(row.price_idr));
+  }
+
   function selectMovers(rows) {
     let rise = null;
     let fall = null;
@@ -67,7 +81,13 @@
       ["Terkini", "Perlu diperiksa", "Data lama"].includes(published.freshness_label);
     return valid ? "ready" : "blocked";
   }
-  const metrics = { finiteNumber, isValidPrice, selectMovers, selectRegions, snapshotReadiness };
+  function hasDashboardContent(payload) {
+    return snapshotReadiness(payload) === "ready" &&
+      payload.national_prices.some(isDisplayableNational);
+  }
+
+  const metrics = { finiteNumber, isValidPrice, commodityKey, isDisplayableNational,
+    selectMovers, selectRegions, snapshotReadiness, hasDashboardContent };
   root.PanganLensMetrics = metrics;
   if (typeof module !== "undefined" && module.exports) module.exports = metrics;
 })(typeof globalThis !== "undefined" ? globalThis : this);

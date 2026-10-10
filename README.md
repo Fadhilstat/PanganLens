@@ -8,6 +8,8 @@ PanganLens explores a practical question: *how can a food-price dashboard make t
 
 **Data status (10 October 2026):** this is a data engineering portfolio preview, **not a live PIHPS price dashboard**. The checked-in production snapshot is empty; visitors can use the calculator with their own numbers.
 
+**Preview-first visitor experience:** source-dependent KPI cards, national/province sections, and their navigation links stay hidden when a verified snapshot has no usable national price record. The calculator, case study, and methodology stay accessible. Commodity selections normalize numeric warehouse IDs and string browser option values. This does not bypass any publication gate.
+
 [Open website preview](https://panganlens-679cd2.gitlab.io/) | [Explore the website source](website/) | [Read the case study](docs/portfolio_case_study.md) | [Inspect quality gates](docs/data_safety_contract.md) | [See cloud activation criteria](https://github.com/Fadhilstat/PanganLens/issues/48)
 
 ## Why this project exists
