@@ -3,51 +3,58 @@
 Updated: 2026-10-10 (Asia/Jakarta)
 Project: PanganLens Indonesia
 Phases: 2 Technical Implementation, 3 Repository, 4 Go-to-market
-Milestone: Portfolio landing, SEO and anonymous Pages release verification
-Status: SOURCE_MERGED_AND_DEPLOYED, ANONYMOUS_PAGES_ACCESS_BLOCKED_HTTP_403
+Milestone: Verified public Vercel launch, source parity and frontend QA
+Status: RELEASE_CANDIDATE_QA_PASSED, VERCEL_PUBLIC_PREVIEW_VERIFIED, MAIN_REDEPLOY_PENDING
 
-## Release results, verified
+## Verified source and quality evidence
 
-- GitHub canonical main at start of this checkpoint: fc550a128a15b68b3358b8e2dcf5cee8858b47c0 (PR #71 MERGED).
-- GitHub quality run #38024816074: SUCCESS (pytest, Ruff, Python compile, Node, PIHPS source probe).
-- GitLab main after MR !6 MERGED: 9767c0cd4a1cd198c7c5a2a8c7bedbb2ff60e7eb.
-- GitLab main pipeline #2932828231: overall SUCCESS; python_quality, frontend_quality and deploy_portfolio_site SUCCESS.
-- public_site_smoke in that pipeline: FAILED, job #17076922519. All 3 anonymous HTTPS GETs to https://panganlens-679cd2.gitlab.io/ returned HTTP 403 Forbidden.
-- Post-merge parity check: 159/159 GitHub/GitLab source file Git blob SHAs match. Different Git commit histories remain expected.
-- GitLab repository visibility: public. GitLab project Pages access level: private at last inspection despite owner reporting that it had been changed.
-- The owner's URL is confirmed as the configured canonical/meta target in source. It is NOT confirmed anonymously available.
-- Live browser visual, mobile screenshots, working calculator on deployed URL: NOT_RUN because hosted access is blocked.
-- website/data/dashboard.json remains empty. No live validated PIHPS observations, no GCP activation, no VPS.
+- GitHub main after PR #74 MERGED: c212bab109ce5d5355eb7e1716fa7c091c5938ba.
+- GitHub editorial PR #74 CI run #38051263593: SUCCESS for Python tests, frontend Node and PIHPS source probe.
+- GitLab main after MR !9 MERGED: 67c209f1c6f04002025ff0e81306cab53a6b7ea3.
+- GitLab main pipeline #2933444982: SUCCESS with warnings. GitLab Pages public smoke still targets the locked old host and is nonblocking.
+- Post merge 161/161 source Git blobs matched across GitHub and GitLab.
+- Vercel personal Hobby team: fadhil-9768s-projects.
+- Vercel new project: panganlens-portfolio, ID prj_Fhc0Q04IUEIPrwwEW1xaF7qTDKEj.
+- Initial manual production deployment dpl_DF3KR3knNBvgf4UkMgLhoVAvttQu: READY with aliases panganlens-portfolio.vercel.app and panganlens-portfolio-fadhil-9768s-projects.vercel.app.
+- Vercel production access independently VERIFIED: GitLab MR !10 public_site_smoke job #17080370537 returned PUBLIC_VERCEL_SMOKE_PASS (all assets, canonical URL and empty reviewed JSON).
+- A test preview using root-level source files errored NOW_SANDBOX_WORKER_ROOTDIR_NOT_EXIST; production upload must preserve website/ paths for the configured root.
+- Vercel GitHub integration for canonical Fadhilstat/PanganLens was not installed when linking was attempted. Owner action is needed for auto-deploy.
 
-## Preview-first UX continuation
+## Product and data boundaries
 
-- The default visitor state prioritizes a working, input-only calculator and the engineering case study over empty price KPIs and disabled data panels.
-- Source-dependent navigation/sections are disclosed only if publication metadata is reviewed and at least one usable national price exists.
-- Commodity IDs are normalized across numeric source rows and string select values, avoiding mismatched regional and national lookup after user selection.
-- Added deterministic Node regression cases for empty/pending snapshots, malformed rows, and ID normalization.
-- This code milestone still requires passing source PR/MR CI and GitLab Pages remains independently blocked by HTTP 403 until owner settings change.
+- CSS-based green editorial redesign is merged. No Dribbble art assets were copied.
+- The interactive user-input calculator remains available and tested. No browser production visual audit was completed.
+- Source-dependent KPI panels remain hidden until verified price observations exist.
+- website/data/dashboard.json is intentionally empty. No validated PIHPS production snapshot, VPS, cloud credential or GCP activation was added.
 
-## Problems, solutions and opportunities
+## This milestone
 
-- BLOCKER: Anonymous visitor gets 403 at Pages root. Owner should set Pages access to Everyone with access under Settings > General > Visibility, project features, permissions, and save.
-- The public-site smoke test is an explicit nonblocking signal to separate content quality from hosting authorization. Its FAILED status is evidence; an overall pipeline SUCCESS is not evidence of website reachability.
-- Visual and keyboard QA can follow only after the actual website can be loaded without login. A direct public browser session is preferred.
-- User approved PUSH and MERGE for the launch milestone. Continue using a reviewed branch, passing CI and a verified content diff for future changes.
+- Update anonymous smoke verification to the actual Vercel production domain with an explicit same-host allowlist.
+- Reject wrong or unreviewed layout, missing assets, invalid snapshot and authentication redirects.
+- Run the public HTTP smoke from GitLab merge request and main CI (nonblocking until auto-deploy).
+- Add regression tests and no-store caching for dashboard.json.
+- Add headless Chrome QA at 360px, 768px and 1440px with calculator, overflow, focus and error assertions; require passing GitHub CI.
+- Redeploy exact merged source to Vercel and inspect both CI and public accessibility before claiming launch-ready.
 
-NOW: Owner fixes GitLab Pages access and verifies https://panganlens-679cd2.gitlab.io/ in an incognito browser; rerun GitLab public_site_smoke job.
-NEXT: When smoke PASS, update the README status and publish URL on LinkedIn/portfolio with clear preview labeling.
-LATER: Activate real PIHPS data under GitHub Issue #48 with production quality gates.
-OPTIONAL: Add screenshot/a11y regression testing for 360 px mobile, 768 px tablet and desktop.
+## Problems, solutions, opportunities
 
-NEXT_ACTION: Change Pages access from private to Everyone with access; then rerun the anonymous smoke job and only declare the website publicly ready if it passes.
+- RESOLVED: Anonymous Vercel HTTP smoke PASS from public GitLab runner, no login or credentials.
+- MEDIUM: No GitHub to Vercel auto-deploy integration; manual source upload needs care with the project root and revision.
+- RESOLVED FOR FUNCTIONAL QA: GitHub Actions browser-quality job #114213562658 passed responsive Chrome tests at 360/768/1440 px, calculator, keyboard skip-link visibility, empty state, no overflow and zero page errors. Screenshot artifact #11669544645 is available for manual aesthetic review.
+- LOW: GitLab Pages still requires login and remains a documented fallback failure.
+- Opportunity: a clear, reproducible public portfolio launch check demonstrates engineering trust and release discipline.
 
+NOW: Merge verified release PR/MR, manually deploy the exact merged main website/ bundle and rerun anonymous Vercel smoke.
+NEXT: Review retained Chrome screenshots for editorial aesthetics before a high-visibility LinkedIn announcement.
+LATER: Reviewed PIHPS production data under GitHub Issue #48.
+OPTIONAL: Case study visuals and LinkedIn publishing pack.
 
-## New milestone: Editorial redesign and Vercel migration
-- Reference: Nixtio Dribbble Pet Shop UI composition; inspired by light mint surfaces, playful produce forms and editorial hierarchy, without copying assets or product UI.
-- Website remains plain static HTML/CSS/JS and uses CSS produce artwork, not invented market prices.
-- Vercel target: https://panganlens-portfolio.vercel.app/. Deployment and anonymous HTTP verification must be recorded separately, never implied by code merge.
-- Existing Vercel panganlens-indonesia is linked to a different GitHub project and must not be overwritten.
-- Vercel GitHub integration was unavailable for this repository at the first attempt. Automatic Git deployments require owner action.
-- Previous GitLab Pages access blocker remains independently documented.
+NEXT_ACTION: Merge PR #75 and MR !10 (after green checks), deploy the final merged source to Vercel and rerun public smoke. Mark ready for portfolio sharing only on post-deployment PASS.
 
-NEXT_ACTION: Check green GitHub/GitLab CI for editorial redesign, deploy static site to Vercel, verify HTTP and browser behavior.
+## Release candidate QA evidence (2026-10-10)
+
+- GitHub PR #75 browser and full quality workflow run #38052253101: SUCCESS.
+- Chrome browser-quality job #114213562658: PASS at width 360, 768 and 1440 px, real calculator arithmetic 10%/20%, reset, focus, no overflow and no JavaScript page errors.
+- Screenshot artifact 11669544645 exists for manual visual review.
+- GitLab MR !10 pipeline #2933461706: Python and Node checks passed. Vercel smoke job #17080370537: PASS with 13291 HTML bytes, 5 static assets and schema-1 empty preview snapshot.
+- This verifies the existing production Vercel deployment, not the upcoming source changes to JSON caching and CI; redeploy exact main and verify again before declaring current revision live.

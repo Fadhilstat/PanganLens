@@ -104,3 +104,12 @@ def test_launch_links_have_visible_keyboard_and_mobile_targets():
     assert ".footer-links a {" in css
     assert "width: 100%;" in css
     assert ":focus-visible" in css
+
+
+def test_vercel_static_config_does_not_cache_price_snapshots():
+    config = json.loads((WEBSITE / "vercel.json").read_text(encoding="utf-8"))
+    assert config["cleanUrls"] is False
+    header_rules = config["headers"]
+    snapshot_rules = [rule for rule in header_rules if rule["source"] == "/data/dashboard.json"]
+    assert len(snapshot_rules) == 1
+    assert {"key": "Cache-Control", "value": "no-store"} in snapshot_rules[0]["headers"]

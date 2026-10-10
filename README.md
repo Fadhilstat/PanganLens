@@ -4,13 +4,13 @@
 
 PanganLens explores a practical question: *how can a food-price dashboard make trends understandable without quietly publishing unverified numbers?* It combines guarded source ingestion, a normalized BigQuery model, mapping review, quality gates, and a lightweight public-facing website.
 
-**Portfolio hosting migration:** GitLab Pages previously returned HTTP 403 to anonymous visitors. PanganLens now targets Vercel static hosting at https://panganlens-portfolio.vercel.app/, pending successful deployment and independent anonymous verification. Do not claim this URL is live until checked. GitLab stays as the CI mirror.
+**Portfolio hosting:** the first manual production deployment at [Vercel](https://panganlens-portfolio.vercel.app/) reached `READY` (deployment `dpl_DF3KR3knNBvgf4UkMgLhoVAvttQu`). Anonymous production access was verified on 10 October 2026 by GitLab MR !10 job #17080370537: `PUBLIC_VERCEL_SMOKE_PASS`. The editorial portfolio preview, CSS, JavaScript and empty validated JSON all loaded without credentials. GitLab Pages previously returned HTTP 403 and is not the promoted public host. GitLab remains the code and CI mirror. The Vercel GitHub integration for this repository must still be authorized by the owner to enable automatic deployments.
 
 **Data status (10 October 2026):** this is a data engineering portfolio preview, **not a live PIHPS price dashboard**. The checked-in production snapshot is empty; visitors can use the calculator with their own numbers.
 
 **Preview-first visitor experience:** source-dependent KPI cards, national/province sections, and their navigation links stay hidden when a verified snapshot has no usable national price record. The calculator, case study, and methodology stay accessible. Commodity selections normalize numeric warehouse IDs and string browser option values. This does not bypass any publication gate.
 
-[Website target pending verification](https://panganlens-portfolio.vercel.app/) | [Explore the website source](website/) | [Read the case study](docs/portfolio_case_study.md) | [Inspect quality gates](docs/data_safety_contract.md) | [See cloud activation criteria](https://github.com/Fadhilstat/PanganLens/issues/48)
+[Vercel production URL, verify public access](https://panganlens-portfolio.vercel.app/) | [Explore the website source](website/) | [Read the case study](docs/portfolio_case_study.md) | [Inspect quality gates](docs/data_safety_contract.md) | [See cloud activation criteria](https://github.com/Fadhilstat/PanganLens/issues/48)
 
 ## Why this project exists
 
@@ -76,6 +76,18 @@ The source client refuses unreviewed transport/schema changes. Production bootst
 | Secrets | No key files or cloud credentials in the frontend or source tree |
 
 This is intentionally a small static frontend, not an always-on server. A live data pipeline requires separate cloud setup and quality approvals described in the existing docs.
+
+## Responsive browser acceptance test
+
+GitHub Actions runs a real headless Chrome browser check at 360px, 768px and 1440px.
+It checks empty-state visibility, horizontal overflow, keyboard focus, calculator
+arithmetic, reset behavior and uncaught JavaScript errors. Screenshots are kept as
+short-lived CI artifacts. Locally, with Chrome available, run:
+
+~~~bash
+npm install --no-save --no-package-lock --ignore-scripts playwright-core@1.61.1
+node --test tests/browser_portfolio.test.cjs
+~~~
 
 ## Reproduce checks
 

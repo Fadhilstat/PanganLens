@@ -1,48 +1,38 @@
 # HANDOFF
 
-## Goal and product scope
+## Canonical project
 
-PanganLens is a portfolio of public food-price analytics, quality-gated data engineering, and a static user-input calculator. No unvalidated market observations are displayed. The production data snapshot is intentionally empty and cloud readiness is tracked separately under GitHub Issue #48. No VPS or new cloud credentials have been used.
+- GitHub: https://github.com/Fadhilstat/PanganLens (source of truth).
+- GitLab: https://gitlab.com/fadhilrusydih/panganlens (mirror, quality gates and older Pages fallback).
+- Vercel new project: panganlens-portfolio, team ID team_EaaiSPOJWbSimQAe1AzNVd39.
+- Production alias target: https://panganlens-portfolio.vercel.app/.
+- Do not alter older Vercel panganlens-indonesia, which is linked to a different GitHub repository.
 
-## Last shipped source release
+## Shipped before this run
 
-- GitHub Fadhilstat/PanganLens PR #71 merged; source SHA fc550a128a15b68b3358b8e2dcf5cee8858b47c0.
-- GitHub Actions #38024816074: SUCCESS for Python quality, frontend and PIHPS probe.
-- GitLab fadhilrusydih/panganlens MR !6 merged; main SHA 9767c0cd4a1cd198c7c5a2a8c7bedbb2ff60e7eb.
-- GitLab main pipeline #2932828231: SUCCESS for Python quality, frontend and deploy_portfolio_site.
-- File content SHA parity immediately after MR !6: 159/159 matched. Git history ancestry differs due to earlier snapshot import.
-- Portfolio site HTML includes canonical/Open Graph/X summary pointing to https://panganlens-679cd2.gitlab.io/, useful links to calculator/case study and source repository, and mobile/keyboard CSS.
+- GitHub PR #73 and PR #74 merged, main SHA c212bab109ce5d5355eb7e1716fa7c091c5938ba.
+- GitLab MR !8 and MR !9 merged, main SHA 67c209f1c6f04002025ff0e81306cab53a6b7ea3.
+- Exact source parity before current milestone: 161/161 file blobs match.
+- GitHub CI #38051263593 successful. GitLab main pipeline #2933444982 successful with GitLab Pages smoke warnings.
+- Vercel manual production deployment dpl_DF3KR3knNBvgf4UkMgLhoVAvttQu READY.
+- Anonymous Vercel HTTP was verified by GitLab MR !10 job #17080370537 (all assets and preview snapshot PASS). GitHub Chrome browser QA #114213562658 passed at 360/768/1440 px, including calculator and keyboard focus.
 
-## Preview-first UX contract
+## This release contract
 
-- With the checked-in empty source JSON, the visitor should see the introduction, a data-unavailable notice, the user-input calculator, the case study, and the methodology. Price-only navigation, KPI cards, and unpopulated panels must remain hidden.
-- Source-dependent content appears only for a successfully published snapshot with at least one usable national commodity row. Numeric and string commodity IDs must select the same commodity without hiding regional data.
-- Node tests cover these pure checks; real browser layout and hosted navigation still need independent verification.
-- No fake PIHPS observations or extra cloud activation were introduced.
+- Vercel must host static files rooted at website/. For REST inline deployments, upload paths prefixed website/ to match the project root.
+- A test preview using root-level files failed with NOW_SANDBOX_WORKER_ROOTDIR_NOT_EXIST and did not replace production.
+- Use anonymous HTTPS smoke with fixed production allowlist and data provenance guards. A build in READY state does not prove HTTP accessibility.
+- Release candidate must pass GitHub Python and JavaScript tests, GitLab mirror tests, file parity and Vercel public smoke.
+- Keep production price snapshot empty until separate reviewed PIHPS source and warehouse publication approval.
+- Calculator accepts only visitor-entered amounts. Do not invent live prices or usage metrics.
+- Vercel GitHub integration is missing for canonical repo; owner must install it for automatic deployment.
+- All source changes follow reviewed feature branch, PR/MR and verified CI before merge.
 
-## Confirmed launch blocker
+## QA and safety boundaries
 
-- The owner supplied the GitLab unique Pages URL and said settings had been changed.
-- GitLab API continued to report project public, pages_access_level private.
-- GitLab job #17076922519 public_site_smoke ran without auth after Pages deployment and FAILED: root GET returned HTTP 403 three times.
-- Thus public access is NOT VERIFIED and cannot be advertised yet. Overall CI green includes an explicitly allow_failure smoke job.
-- An unauthenticated real-browser visual test was not performed. The HTTP check was blocked before any assets could be examined.
-- GitLab connector cannot update project Pages access settings. Do not invent a workaround with tokens.
+- Preserve source snapshot checker, quality gates, data source provenance, accessibility states and no credentials in browser.
+- GitHub browser-quality completed PASS in workflow #38052253101; retained screenshot artifact #11669544645 enables optional manual aesthetics review. Automated browser functional QA and unauthenticated public HTTP smoke are both verified.
+- The blocked GitLab Pages domain must not be promoted as public.
+- No VPS, cloud keys or paid infrastructure requested.
 
-## Safe next steps
-
-1. Owner checks GitLab project Settings > General > Visibility, project features, permissions and sets Pages access to Everyone with access, then saves. Ensure this is Pages visibility, not only repository visibility.
-2. Open https://panganlens-679cd2.gitlab.io/ from a private/incognito browser without being logged into GitLab.
-3. Retry job #17076922519 (or trigger a new main pipeline) using GitLab CI. A PASS must show real HTML, all assets and JSON in job trace.
-4. Once anonymous smoke succeeds, update README status, verify desktop/mobile/keyboard UI, and publish the now-verified URL.
-5. For any further code changes, re-fetch HEAD and CI, make reviewed PR/MR changes only, and retain exact content parity.
-
-NEXT_ACTION: Fix GitLab Pages access control so the anonymous Pages check changes from HTTP 403 to PASS.
-
-
-## Editorial website migration
-- New identity: green editorial food-data portfolio design with CSS-based produce artwork, accessible calculator and snapshot safeguards preserved.
-- Proposed static Vercel production host: https://panganlens-portfolio.vercel.app/; production success must be verified from the deployment ID and anonymous HTTP result.
-- Existing Vercel panganlens-indonesia project belongs to another repository. Do not overwrite it.
-- GitHub repository integration for this specific repository was not installed when first attempted; owner must authorize it to enable automatic deployments.
-- No runtime backend, cloud credentials or synthetic data are added.
+NEXT_ACTION: Merge GitHub PR #75 and GitLab MR !10 after green CI, manually redeploy final main source to Vercel with website/-prefixed paths, then rerun public HTTP verification. Public preview can be shared when the updated release passes.
