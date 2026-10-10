@@ -52,14 +52,16 @@ deploy_portfolio_site:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
 
 
-# Anonymous check after Pages publish. Diagnostic only: access settings or CDN
-# propagation must not override the verified Python and frontend release gates.
+# Anonymous production check against Vercel, independent of the blocked GitLab
+# Pages fallback. Visible on MR and main; a stale manual deployment is not CI green.
+# Diagnostic until the owner connects the canonical GitHub repo for auto-deploy.
 public_site_smoke:
   stage: smoke
-  needs: ["deploy_portfolio_site"]
+  needs: ["python_quality", "frontend_quality"]
   allow_failure: true
   timeout: 3m
   script:
-    - python scripts/check_public_site.py --url https://panganlens-679cd2.gitlab.io/ --attempts 3
+    - python scripts/check_public_site.py --url https://panganlens-portfolio.vercel.app/ --attempts 3
   rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'

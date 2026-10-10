@@ -79,14 +79,16 @@ def test_gitlab_frontend_quality_uses_node_without_npm_install():
     assert "npm install" not in job
 
 
-def test_anonymous_smoke_follows_pages_publish_and_is_nonblocking():
+def test_vercel_anonymous_smoke_follows_quality_and_is_nonblocking():
     ci = GITLAB_CI.read_text(encoding="utf-8")
     assert "- smoke" in ci
     assert "public_site_smoke:" in ci
     job = ci.split("public_site_smoke:", 1)[1]
     assert "stage: smoke" in job
-    assert 'needs: ["deploy_portfolio_site"]' in job
+    assert 'needs: ["python_quality", "frontend_quality"]' in job
     assert "allow_failure: true" in job
     assert "scripts/check_public_site.py" in job
+    assert "https://panganlens-portfolio.vercel.app/" in job
+    assert 'CI_PIPELINE_SOURCE == "merge_request_event"' in job
     assert "CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH" in job
     assert "GCP_" not in job

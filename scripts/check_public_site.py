@@ -1,6 +1,6 @@
 """Anonymous, dependency-free smoke test for the published PanganLens website.
 
-Uses no GitLab token, browser session, cloud credentials, or VPS.
+Uses no GitLab token, Vercel token, browser session, cloud credentials, or VPS.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ from datetime import date
 from urllib.parse import urljoin, urlparse
 from urllib.request import Request, urlopen
 
-PUBLIC_SITE = "https://panganlens-679cd2.gitlab.io/"
+PUBLIC_SITE = "https://panganlens-portfolio.vercel.app/"
 ASSETS = (
     "styles.css",
     "app.js",
@@ -31,7 +31,7 @@ def _fetch_public(url: str) -> bytes:
         if response.status != 200:
             raise ValueError(f"website HTTP status: {response.status}")
         if urlparse(final_url).hostname != expected_host:
-            raise ValueError("website redirected outside the public Pages host")
+            raise ValueError("website redirected outside the approved public host")
         payload = response.read(500_001)
         if len(payload) > 500_000:
             raise ValueError("website asset exceeds the smoke-test size limit")
@@ -41,10 +41,10 @@ def _fetch_public(url: str) -> bytes:
 def verify_public_site(base_url: str, fetcher=None) -> dict[str, object]:
     """Return observed facts only after HTML, all assets and JSON pass."""
     parsed = urlparse(base_url)
-    if parsed.scheme != "https" or not parsed.hostname or parsed.username:
-        raise ValueError("public Pages URL must use an HTTPS host")
+    if parsed.scheme != "https" or parsed.netloc != urlparse(PUBLIC_SITE).netloc:
+        raise ValueError("public website must use the approved HTTPS production host")
     if parsed.query or parsed.fragment or parsed.path not in ("", "/"):
-        raise ValueError("public Pages URL must point to the website root")
+        raise ValueError("public website URL must point to the website root")
     base = base_url.rstrip("/") + "/"
     read = fetcher or _fetch_public
     html = read(base).decode("utf-8")
@@ -52,6 +52,8 @@ def verify_public_site(base_url: str, fetcher=None) -> dict[str, object]:
         raise ValueError("public URL is not the PanganLens website")
     if 'id="price-calculator"' not in html or 'id="data-notice"' not in html:
         raise ValueError("public website is missing its calculator or data status")
+    if 'class="dashboard-preview editorial-site"' not in html:
+        raise ValueError("public website is not serving the reviewed editorial release")
     if f'<link rel="canonical" href="{base}">' not in html:
         raise ValueError("public website is not yet serving the launch metadata")
     if f'<meta property="og:url" content="{base}">' not in html:
@@ -103,7 +105,7 @@ def verify_public_site(base_url: str, fetcher=None) -> dict[str, object]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Check anonymous PanganLens Pages access")
+    parser = argparse.ArgumentParser(description="Verify anonymous Vercel PanganLens production access")
     parser.add_argument("--url", default=PUBLIC_SITE)
     parser.add_argument("--attempts", type=int, default=3)
     args = parser.parse_args(argv)
@@ -114,13 +116,13 @@ def main(argv: list[str] | None = None) -> int:
         try:
             result = verify_public_site(args.url)
         except (OSError, ValueError, UnicodeError, json.JSONDecodeError) as exc:
-            print(f"Public Pages attempt {attempt}/{args.attempts}: FAIL ({exc})",
+            print(f"Public website attempt {attempt}/{args.attempts}: FAIL ({exc})",
                   file=sys.stderr)
             if attempt == args.attempts:
                 return 1
             time.sleep(5)
         else:
-            print("PUBLIC_PAGES_SMOKE_PASS " + json.dumps(result, sort_keys=True))
+            print("PUBLIC_VERCEL_SMOKE_PASS " + json.dumps(result, sort_keys=True))
             return 0
     return 1
 

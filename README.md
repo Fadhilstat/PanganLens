@@ -4,13 +4,13 @@
 
 PanganLens explores a practical question: *how can a food-price dashboard make trends understandable without quietly publishing unverified numbers?* It combines guarded source ingestion, a normalized BigQuery model, mapping review, quality gates, and a lightweight public-facing website.
 
-**Portfolio hosting migration:** GitLab Pages previously returned HTTP 403 to anonymous visitors. PanganLens now targets Vercel static hosting at https://panganlens-portfolio.vercel.app/, pending successful deployment and independent anonymous verification. Do not claim this URL is live until checked. GitLab stays as the CI mirror.
+**Portfolio hosting:** the first manual production deployment at [Vercel](https://panganlens-portfolio.vercel.app/) reached `READY` (deployment `dpl_DF3KR3knNBvgf4UkMgLhoVAvttQu`). Anonymous public access remains unverified until the hosted Vercel smoke test passes. GitLab Pages previously returned HTTP 403 and is not the promoted public host. GitLab remains the code and CI mirror. The Vercel GitHub integration for this repository must still be authorized by the owner to enable automatic deployments.
 
 **Data status (10 October 2026):** this is a data engineering portfolio preview, **not a live PIHPS price dashboard**. The checked-in production snapshot is empty; visitors can use the calculator with their own numbers.
 
 **Preview-first visitor experience:** source-dependent KPI cards, national/province sections, and their navigation links stay hidden when a verified snapshot has no usable national price record. The calculator, case study, and methodology stay accessible. Commodity selections normalize numeric warehouse IDs and string browser option values. This does not bypass any publication gate.
 
-[Website target pending verification](https://panganlens-portfolio.vercel.app/) | [Explore the website source](website/) | [Read the case study](docs/portfolio_case_study.md) | [Inspect quality gates](docs/data_safety_contract.md) | [See cloud activation criteria](https://github.com/Fadhilstat/PanganLens/issues/48)
+[Vercel production URL, verify public access](https://panganlens-portfolio.vercel.app/) | [Explore the website source](website/) | [Read the case study](docs/portfolio_case_study.md) | [Inspect quality gates](docs/data_safety_contract.md) | [See cloud activation criteria](https://github.com/Fadhilstat/PanganLens/issues/48)
 
 ## Why this project exists
 

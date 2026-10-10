@@ -18,7 +18,7 @@ HTML = f"""<html><head><title>PanganLens Indonesia</title>
 <link rel="canonical" href="{PUBLIC_SITE}">
 <meta property="og:url" content="{PUBLIC_SITE}">
 <link rel="stylesheet" href="styles.css"></head>
-<body><section id="data-notice"></section><form id="price-calculator"></form>
+<body class="dashboard-preview editorial-site"><section id="data-notice"></section><form id="price-calculator"></form>
 <script src="app.js"></script><script src="dashboard_metrics.js"></script>
 <script src="price_playground.js"></script></body></html>"""
 
@@ -88,8 +88,14 @@ def test_old_or_redirected_site_metadata_cannot_pass():
 
 
 def test_invalid_urls_are_rejected_without_network():
-    for url in ("http://panganlens-679cd2.gitlab.io/", "https://example.org/path",
-                "https://example.org/?token=a", "file:///tmp/index.html"):
+    for url in ("http://panganlens-portfolio.vercel.app/",
+                "https://panganlens-679cd2.gitlab.io/",
+                "https://example.org/", "https://example.org/path",
+                "https://example.org/?token=a",
+                "https://panganlens-portfolio.vercel.app.evil.example/",
+                "https://panganlens-portfolio.vercel.app:444/",
+                "https://panganlens-portfolio.vercel.app/#top",
+                "file:///tmp/index.html"):
         with pytest.raises(ValueError):
             verify_public_site(url, fixture_fetch())
 
@@ -102,3 +108,19 @@ def test_broken_published_date_is_rejected():
     }
     with pytest.raises(ValueError, match="observation date"):
         verify_public_site(PUBLIC_SITE, fixture_fetch(publish_state=state))
+
+
+def test_unreviewed_layout_cannot_pass_as_editorial_release():
+    html = HTML.replace('class="dashboard-preview editorial-site"', '')
+    with pytest.raises(ValueError, match="editorial release"):
+        verify_public_site(PUBLIC_SITE, fixture_fetch(html=html))
+
+
+def test_vercel_production_root_is_exactly_allowlisted():
+    assert PUBLIC_SITE == "https://panganlens-portfolio.vercel.app/"
+    for candidate in (
+        "https://panganlens-portfolio-fadhil-9768s-projects.vercel.app/",
+        "https://panganlens-portfolio.vercel.app@evil.example/",
+    ):
+        with pytest.raises(ValueError, match="approved HTTPS production host"):
+            verify_public_site(candidate, fixture_fetch())
