@@ -84,7 +84,11 @@ The website performs a second provenance check before rendering price values. Gi
 without BigQuery. It validates the official PIHPS reference IDs, exact reviewed
 transport/schema and raw payload SHA-256, parses positive price cells and missing
 cells, fails on repeated source row keys, and retains original source labels and IDs
-without inventing canonical mappings. Output CSV cells are protected against
+without inventing canonical mappings. A requested province ID is labeled
+`request_province_filter_id`, never as a canonical identity of each row.
+Responses may contain several source levels such as all provinces, one province,
+and cities within the same request. Those original row levels and names are kept
+separate pending manual review. Output CSV cells are protected against
 spreadsheet formulas. All rows are marked `UNREVIEWED_SOURCE_SAMPLE`.
 
 This is **not a production capture**. The CLI explicitly refuses to export into
