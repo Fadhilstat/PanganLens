@@ -206,3 +206,35 @@ python scripts/check_public_site.py --url https://panganlens-679cd2.gitlab.io/ -
 ~~~
 
 This is a HTTP/content-level smoke test, not a desktop/mobile screenshot audit. The interface has keyboard, focus, reduced-motion, mobile CSS, and contract tests, while real-browser visual testing remains an independent review step.
+
+
+## Current source-data research workflow
+
+The production BigQuery snapshot is still empty because canonical mappings, write IAM
+and the active publication pointer have not been independently approved under Issue #48.
+The website must not show unreviewed PIHPS values.
+
+A new **zero-cloud-write research capture** retrieves just one original PIHPS commodity
+and province over an 11-day calendar window, validates the two source references and
+price grid schema, parses positive integer rupiah prices, counts missing price cells,
+rejects duplicate source keys, verifies raw SHA-256 evidence, and preserves source IDs and raw source row names/levels without asserting canonical
+entity mappings. The source province ID is the **request filter**, not the
+geographic identity of every returned grid row. A stale observation is flagged for review.
+
+Use this command on a networked workstation:
+
+~~~bash
+python scripts/export_pihps_research_sample.py --output-dir /tmp/pihps-research
+~~~
+
+The default scope is PIHPS source ID `com_3` (commodity), province ID `13`,
+and the eleven calendar days ending on the previous business day. These IDs are
+validated against **fresh reference responses** rather than mapped by name. It
+creates `source_audit.json` and `unreviewed_source_prices.csv`; all exported
+observations carry `UNREVIEWED_SOURCE_SAMPLE`, and no files are written to `website/`.
+A GitHub pull request or manual quality workflow run produces a short-lived
+`pihps-unreviewed-research-sample` artifact. The scheduled source-health probe
+does not export any price data. No BigQuery query or cloud credential is needed.
+
+This is a review aid for the mapping and quality pipeline, not a way to bypass
+the independent BigQuery readiness, provenance, and publish-state requirements.

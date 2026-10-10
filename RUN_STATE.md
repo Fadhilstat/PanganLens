@@ -70,3 +70,32 @@ NEXT_ACTION: Owner authorizes the Vercel GitHub integration for Fadhilstat/Panga
 - Public preview is appropriate to share as a transparent engineering portfolio case study, not as live PIHPS price coverage.
 - GitLab Pages still returns 403 but is no longer the primary publication URL. Vercel GitHub integration is still manual setup.
 - This final release-status checkpoint only edits documentation; website/ hashes and production content remain unchanged.
+
+
+## Data milestone: narrow PIHPS source research candidate
+
+- New read-only research exporter for one verified source commodity/province and a bounded historical window.
+- Export includes original price observations in a temporary CSV, plus JSON with raw capture
+  fingerprint, count of valid and missing cells, observation date, and explicit review flags.
+- Deterministic schema, reference membership, positive-price parsing, hash integrity
+  and repeated-key checks block unsafe captures. Output is never a curated snapshot.
+- GitHub PR and manual quality runs can store a short-lived source review artifact;
+  scheduled source probe remains schema-only and never exports price rows.
+- This change intentionally does not select a GCP project, run BigQuery SQL, activate
+  ingestion scheduling, approve mappings, or alter website/data/dashboard.json.
+
+NOW: Validate real source research capture through CI and inspect artifact metadata.
+NEXT: Review source names against canonical commodity/province registry; then continue
+Issue #48 cloud activation only when the operator supplies reviewed GCP/WIF evidence.
+LATER: Populate curated marts with verified observations and publish pointer.
+OPTIONAL: Multi-region data quality report after one single-scope capture is reviewed.
+
+NEXT_ACTION: Run source research CI against live PIHPS, review CSV and SHA evidence,
+then decide mappings before any production price publication.
+
+- First live research sample CI artifact #11670741984 (2026-10-10) contained
+  27 price points from 3 source row levels across 9 observed dates (latest
+  2026-10-09), 0 missing cells. Research-only, publish_eligible=false.
+- Review found that a province-filtered source response includes rows for
+  "Semua Provinsi", "DKI Jakarta", and "Kota Jakarta Pusat"; the exporter now
+  names the request filter separately from each row's source level/name.

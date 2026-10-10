@@ -48,3 +48,29 @@ NEXT_ACTION: Owner connects Vercel GitHub integration to Fadhilstat/PanganLens f
 - Browser QA covers 360px, 768px and 1440px, calculator math/reset, keyboard skip focus and no horizontal overflow. Screenshots in artifact #11669871395.
 - This checkpoint changes docs only and does not require another website/ redeployment.
 - Public sharing is truthful only as a portfolio preview, with the checked-in JSON empty and PIHPS production activation gated.
+
+
+## Data research milestone continuation
+
+- `src/panganlens/ingestion/research_sample.py` implements an isolated,
+  read-only source-audit and CSV export boundary.
+- `scripts/export_pihps_research_sample.py` uses live PIHPS GET-only captures.
+- `tests/test_research_sample.py` checks source integrity, reference identities,
+  duplicate keys, missing prices, stale review flags and spreadsheet safety.
+- GitHub PR/manual `live-pihps-probe` exports a short-lived source artifact;
+  scheduled probe remains source-schema-only.
+- Research output is not allowed inside website/ and must never be confused with
+  BigQuery curated price rows or verified production readiness.
+- No GCP bootstrap/apply, credentials, scheduling, mapping approval or production
+  snapshot edits are authorized by this change.
+
+NEXT_ACTION: Inspect CI source artifact and validate the raw-to-reviewed mapping
+plan, then continue Issue #48 activation through explicit operator-controlled gates.
+
+- Live PIHPS source research evidence was captured in GitHub Actions:
+  27 source price points, 9 observation dates, 3 original row levels,
+  0 missing price cells, latest 2026-10-09. No warehouse publication.
+- The province filter is not each returned row's geographic identity.
+  Source rows in the sample included all-provinces, DKI and Jakarta Pusat.
+  CSV fields now use request_province_filter_id/name to prevent that
+  analytical join error before reviewed canonical mapping.
