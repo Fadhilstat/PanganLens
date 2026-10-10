@@ -4,9 +4,11 @@
 
 PanganLens explores a practical question: *how can a food-price dashboard make trends understandable without quietly publishing unverified numbers?* It combines guarded source ingestion, a normalized BigQuery model, mapping review, quality gates, and a lightweight public-facing website.
 
-**Portfolio status (10 October 2026):** the GitHub and GitLab code releases passed CI, and GitLab's static Pages deployment job succeeded. However, **anonymous Pages access is not yet verified**, because the project's Pages visibility is private. GitHub Pages still needs repository settings enabled. Verified live food prices are not published; the checked-in snapshot is deliberately empty. The calculator uses visitor-provided input only.
+**Portfolio website:** [Open PanganLens preview](https://panganlens-679cd2.gitlab.io/) (URL provided by the repository owner). The Pages deployment previously passed CI, but independent anonymous access is still awaiting a passing hosted smoke check. GitLab's API continues to report Pages access as private, so verify the actual URL without logging in before advertising it as publicly accessible. GitHub Pages is optional and not yet enabled.
 
-[Explore the website source](website/) | [Read the case study](docs/portfolio_case_study.md) | [Inspect quality gates](docs/data_safety_contract.md) | [See cloud activation criteria](https://github.com/Fadhilstat/PanganLens/issues/48)
+**Data status (10 October 2026):** this is a data engineering portfolio preview, **not a live PIHPS price dashboard**. The checked-in production snapshot is empty; visitors can use the calculator with their own numbers.
+
+[Open website preview](https://panganlens-679cd2.gitlab.io/) | [Explore the website source](website/) | [Read the case study](docs/portfolio_case_study.md) | [Inspect quality gates](docs/data_safety_contract.md) | [See cloud activation criteria](https://github.com/Fadhilstat/PanganLens/issues/48)
 
 ## Why this project exists
 
@@ -83,8 +85,10 @@ pytest -q
 ruff check src scripts tests
 python -m compileall -q src scripts tests
 node --check website/app.js
+node --check website/dashboard_metrics.js
 node --check website/price_playground.js
-node --test tests/price_playground.test.cjs
+node --test tests/dashboard_metrics.test.cjs tests/price_playground.test.cjs
+python scripts/check_public_snapshot.py website/data/dashboard.json
 ~~~
 
 To view the static site locally, run:
@@ -141,7 +145,7 @@ The website remains safe to publish as a **portfolio preview**: no unsupported m
 
 ## Roadmap
 
-**NOW:** Make the deployed GitLab Pages site publicly accessible, verify its URL without signing in, and optionally enable GitHub Pages.
+**NOW:** Verify anonymous GitLab Pages access via the hosted smoke check, then share the preview URL with an accurate no-live-data label. Optional GitHub Pages hosting remains separate.
 
 **NEXT:** Obtain reviewed mappings, activate BigQuery with short-lived identity, and publish the first validated price snapshot.
 
@@ -163,3 +167,18 @@ Personal data engineering and analytics portfolio project. [LinkedIn](https://ww
 - GitLab Pages access control reported private. Do not treat successful artifact deployment as verified public reachability.
 
 Owner steps: set GitLab **Settings > General > Visibility, project features, permissions > Pages** to **Everyone with access** and find the actual URL under **Deploy > Pages**. Optional GitHub site: set **Settings > Pages > Build and deployment > Source: GitHub Actions**, then rerun the existing website workflow. No VPS is needed.
+
+
+## Public website checks
+
+The repository owner supplied the GitLab Pages URL: [https://panganlens-679cd2.gitlab.io/](https://panganlens-679cd2.gitlab.io/). The static site includes canonical and social-sharing metadata for that address, a direct entry point to the user-input calculator, and links to source code. No cover image, testimonials, live price statistics, or unverified analytics have been invented.
+
+After GitLab Pages publishes from `main`, the `public_site_smoke` job requests the website **without authentication**. It checks the actual HTML, social metadata, CSS, JavaScript assets, and dashboard JSON. This job is deliberately nonblocking because Pages propagation and access settings are independent from code tests; a failed smoke job still means public reachability is **NOT_VERIFIED**. Its outcome must be inspected before posting the link publicly.
+
+To repeat this external check from an internet-connected machine:
+
+~~~bash
+python scripts/check_public_site.py --url https://panganlens-679cd2.gitlab.io/ --attempts 1
+~~~
+
+This is a HTTP/content-level smoke test, not a desktop/mobile screenshot audit. The interface has keyboard, focus, reduced-motion, mobile CSS, and contract tests, while real-browser visual testing remains an independent review step.

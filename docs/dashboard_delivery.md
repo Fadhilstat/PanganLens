@@ -73,3 +73,12 @@ The exporter reads the reviewed `vw_looker_publish_state` first. If no active po
 The browser checks JSON schema version, array shapes, successful publication run, ISO observation date, and reviewed freshness labels before displaying a price. A stale but valid publication can still be shown with its existing warning label; missing or invalid provenance cannot.
 
 Both the GitHub Pages and GitLab Pages deployment steps must run `python scripts/check_public_snapshot.py website/data/dashboard.json` before packaging the site. The website preview uses an intentionally empty JSON file and does not claim live PIHPS prices. This static validation is separate from BigQuery source, mapping, and operational checks.
+
+
+## GitLab Pages public launch URL and verification
+
+The owner identified the current unique Pages domain as [https://panganlens-679cd2.gitlab.io/](https://panganlens-679cd2.gitlab.io/). The website's canonical URL and Open Graph metadata point to this domain; they do not prove that it is publicly reachable.
+
+After successful `main` deployment, GitLab runs `public_site_smoke`, a nonblocking, anonymous hosted request for the real HTML, CSS, three JavaScript files, and `data/dashboard.json`. It rejects off-domain sign-in redirects, missing assets, incompatible schema, and a price payload without a valid publish state. Inspect the smoke job result separately from the successful `deploy_portfolio_site` job.
+
+At implementation time the GitLab project API continued to return `pages_access_level: private`, even after the owner reported changing the setting. The direct URL could not be fetched from the assistant's runtime, so do not record PASS until a hosted external check or unauthenticated browser proves reachability. This distinction is part of the release acceptance criteria.
