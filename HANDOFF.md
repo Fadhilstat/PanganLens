@@ -35,4 +35,16 @@
 - The blocked GitLab Pages domain must not be promoted as public.
 - No VPS, cloud keys or paid infrastructure requested.
 
-NEXT_ACTION: Merge GitHub PR #75 and GitLab MR !10 after green CI, manually redeploy final main source to Vercel with website/-prefixed paths, then rerun public HTTP verification. Public preview can be shared when the updated release passes.
+NEXT_ACTION: Owner connects Vercel GitHub integration to Fadhilstat/PanganLens for automatic main deployment. The public portfolio preview is live and independently verified; activation of price data requires separate approval.
+
+## Latest public release checkpoint (verified)
+
+- GitHub PR #75 merged, main SHA 0234893d6db6ac09aa5d673eb983b0053bd7c58c.
+- GitLab MR !10 merged, main SHA b39d1f835202cfb1a2b72020fee4278770d2d11e.
+- 162/162 source blobs match across canonical and mirror repositories.
+- Vercel production deployment dpl_AMPHmiCdttsw8xGaYSGKzttiBRdV READY at https://panganlens-portfolio.vercel.app/.
+- GitLab main pipeline #2933465351 public smoke job #17080390567 PASS after this deployment.
+- GitHub Actions #38052358434 SUCCESS (Python, frontend, PIHPS source probe, browser Chrome).
+- Browser QA covers 360px, 768px and 1440px, calculator math/reset, keyboard skip focus and no horizontal overflow. Screenshots in artifact #11669871395.
+- This checkpoint changes docs only and does not require another website/ redeployment.
+- Public sharing is truthful only as a portfolio preview, with the checked-in JSON empty and PIHPS production activation gated.

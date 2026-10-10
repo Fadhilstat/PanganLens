@@ -59,3 +59,14 @@ before promoting the site on LinkedIn.
 - GitLab MR !10 job #17080370537 returned `PUBLIC_VERCEL_SMOKE_PASS` against the production alias, without tokens. All five static assets and empty valid production snapshot were loaded.
 - GitHub PR #75 full workflow #38052253101 completed SUCCESS. Browser-quality job #114213562658 passed 360/768/1440 px responsive checks and calculator submit/reset; screenshots are in artifact #11669544645.
 - This evidence verifies the initial Vercel editorial preview, not any subsequent changes. Redeploy the exact merged main revision before promoting a newer release, then re-run the public smoke check.
+
+## Final source and public availability checkpoint
+
+- Current deployed static website: https://panganlens-portfolio.vercel.app/
+- GitHub main release source: 0234893d6db6ac09aa5d673eb983b0053bd7c58c, merged through PR #75.
+- GitLab mirror main: b39d1f835202cfb1a2b72020fee4278770d2d11e, merged through MR !10. Source blob parity checked 162/162.
+- Vercel production deployment ID: dpl_AMPHmiCdttsw8xGaYSGKzttiBRdV, state READY, same canonical main SHA.
+- Post-deploy GitLab main public smoke: pipeline 2933465351, job 17080390567, PASS.
+- Final GitHub full quality workflow: 38052358434, SUCCESS; screenshots in artifact 11669871395.
+- Release documentation checkpoints do not modify `website/` and do not require rebuilding the already verified static content.
+- Remaining operations: connect repository integration for auto-deploy, optional screenshot review and separately approved real PIHPS activation. No live-market-data claims are permitted meanwhile.
