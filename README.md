@@ -217,8 +217,9 @@ The website must not show unreviewed PIHPS values.
 A new **zero-cloud-write research capture** retrieves just one original PIHPS commodity
 and province over an 11-day calendar window, validates the two source references and
 price grid schema, parses positive integer rupiah prices, counts missing price cells,
-rejects duplicate source keys, verifies raw SHA-256 evidence, and preserves source IDs
-without asserting canonical entity mappings. A stale observation is flagged for review.
+rejects duplicate source keys, verifies raw SHA-256 evidence, and preserves source IDs and raw source row names/levels without asserting canonical
+entity mappings. The source province ID is the **request filter**, not the
+geographic identity of every returned grid row. A stale observation is flagged for review.
 
 Use this command on a networked workstation:
 
