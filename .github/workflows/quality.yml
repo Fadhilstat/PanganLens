@@ -88,6 +88,19 @@ jobs:
         run: >-
           python scripts/probe_pihps.py
           --output /tmp/pihps_probe_summary.json
+      - name: Collect narrow unreviewed PIHPS research sample
+        if: github.event_name != 'schedule'
+        run: >-
+          python scripts/export_pihps_research_sample.py
+          --output-dir "$RUNNER_TEMP/pihps-research"
+      - name: Retain unreviewed research sample for manual mapping review
+        if: github.event_name != 'schedule' && always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: pihps-unreviewed-research-sample
+          path: ${{ runner.temp }}/pihps-research/
+          if-no-files-found: ignore
+          retention-days: 3
       - name: Upload schema-only probe evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

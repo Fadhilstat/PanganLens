@@ -76,3 +76,23 @@ The curated publish pointer, not the mere presence of rows in price marts, decid
 National rows must not be newer than the pointer's active observation date. Province comparisons must refer to that same active observation date so the website cannot rank historical and current province observations together.
 
 The website performs a second provenance check before rendering price values. GitHub Pages and GitLab Pages also run a dependency-free static JSON validation before deployment. These checks do not replace the source freshness, mapping, and warehouse quality controls already required for first production activation.
+
+
+## Read-only source research capture
+
+`scripts/export_pihps_research_sample.py` now supports a small source-data audit
+without BigQuery. It validates the official PIHPS reference IDs, exact reviewed
+transport/schema and raw payload SHA-256, parses positive price cells and missing
+cells, fails on repeated source row keys, and retains original source labels and IDs
+without inventing canonical mappings. Output CSV cells are protected against
+spreadsheet formulas. All rows are marked `UNREVIEWED_SOURCE_SAMPLE`.
+
+This is **not a production capture**. The CLI explicitly refuses to export into
+`website/`, the GitHub scheduled probe never exports sample prices, and only
+pull request/manual workflow runs retain temporary review artifacts (3 days).
+A source audit passing means only that a narrow captured response was usable for
+human mapping review, not that BigQuery has a fresh published dataset.
+
+Never copy sample prices to `website/data/dashboard.json` without the existing
+warehouse ingestion, reviewed mapping, quality, source freshness and publication
+pointer checks. Raw source IDs and names must not be silently treated as canonical IDs.
